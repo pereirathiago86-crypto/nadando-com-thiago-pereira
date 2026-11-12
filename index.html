@@ -241,7 +241,7 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
 .pfundo::after{content:"";position:absolute;left:0;right:0;bottom:0;height:30%;background:linear-gradient(#061B2E00,#061B2E)}
 .pmarca{align-self:center;min-width:0;display:flex;flex-direction:column;gap:clamp(8px,1.4vh,16px)}
 #plogo{width:clamp(64px,7vw,112px);height:auto;margin-bottom:clamp(4px,1vh,12px);filter:drop-shadow(0 6px 24px #3EC6E066)}
-.psobre{font:600 clamp(11px,1.15vw,17px)/1 var(--body);letter-spacing:.42em;text-transform:uppercase;color:var(--aqua)}
+.psobre{font:600 clamp(11px,1.15vw,17px)/1 var(--body);letter-spacing:.42em;text-transform:uppercase;color:var(--aqua);text-shadow:0 2px 14px #061B2E,0 0 4px #061B2E}
 .pnome{font:900 clamp(40px,6.1vw,104px)/.86 var(--display);letter-spacing:-.035em;text-transform:uppercase;color:var(--foam);text-shadow:0 8px 40px #061B2E}
 .pfaixas{display:flex;flex-direction:column;gap:6px;width:min(100%,420px);margin-top:4px}
 .pfaixas i{display:block;height:9px;border-radius:9px;transform-origin:left;animation:onda 5s ease-in-out infinite}
@@ -261,12 +261,36 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
 .pcampo input:focus{border-color:var(--aqua);box-shadow:0 0 0 3px #3EC6E033}
 #pVolta{align-self:center}
 @media (max-width:980px){
-  .porta{grid-template-columns:1fr;align-content:start;gap:18px}
-  .pheroi{position:absolute;z-index:-1;right:-8%;top:0;height:min(58vh,520px);margin:0;opacity:.5}
-  .pmarca{padding-top:6vh}
-  .pnome{font-size:clamp(44px,13vw,84px)}
+  .porta{grid-template-columns:1fr;align-content:start;gap:14px;padding-top:0}
+  .pfundo{background:linear-gradient(180deg,#061B2Eb8 0%,#061B2Ee0 42%,#061B2Efa 100%)}
+  .pheroi{order:-1;height:min(42vh,360px);margin:0}                       /* no celular a foto fica em cima, inteira, e o nome entra por baixo dela */
+  .pmarca{margin-top:-11vh}
+  #plogo{position:absolute;top:14px;left:16px;width:52px;margin:0}
+  .pnome{font-size:clamp(42px,12.6vw,84px)}
+  #pEsqueci,#pVolta{align-self:center}
 }
 @media (prefers-reduced-motion:reduce){.pfaixas i{animation:none}}
+/* ===== versão 13: menu animado (a turma boiando, bolhas, botões que respondem) e quem joga neste aparelho ===== */
+.turma{display:flex;justify-content:space-between;gap:6px;margin:-2px 0 2px}
+.turma img{width:clamp(30px,8.6vw,50px);aspect-ratio:1;border-radius:50%;border:2.5px solid var(--aqua);background:var(--navy2);object-fit:cover;animation:boia 2.6s ease-in-out infinite;box-shadow:0 6px 14px -6px #000}
+@keyframes boia{0%,100%{transform:translateY(3px) rotate(-4deg)}50%{transform:translateY(-5px) rotate(4deg)}}
+.bolhas{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+.bolhas i{position:absolute;bottom:-60px;border-radius:50%;border:1.5px solid #bfefff55;background:radial-gradient(circle at 32% 30%,#ffffff5c,#ffffff0a 62%);animation:sobe linear infinite}
+@keyframes sobe{to{transform:translateY(-118vh) translateX(22px)}}
+.screen>.card{position:relative;z-index:1}
+.go{transition:transform .14s cubic-bezier(.2,1.7,.4,1),box-shadow .2s,filter .2s}
+.go:hover:not(:disabled){transform:translateY(-2px) scale(1.012);filter:brightness(1.06)}
+.seg button{transition:background .16s,color .16s,transform .12s}
+.seg button:active{transform:scale(.95)}
+.quem .foto:hover,.pfot .foto:hover{transform:scale(1.04) rotate(-2deg)}
+.pfot .foto{transition:transform .2s}
+.vaga{transition:transform .12s,background .16s}.vaga:active{transform:scale(.96)}
+.locnomes{display:flex;flex-direction:column;gap:6px}
+.locnomes .rmrow span{white-space:nowrap}.locnomes .rmrow small{font-size:11.5px;color:var(--muted);white-space:nowrap}
+#pEsqueci{align-self:center}
+@media (prefers-reduced-motion:reduce){.bolhas{display:none}.turma img{animation:none}}
+.incentivo{font-weight:600;color:var(--foam);margin-top:-6px}
+.incentivo:empty{display:none}
 </style>
 </head>
 <body>
@@ -288,6 +312,7 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
         <div class="eyebrow" id="menuSub">Final · 8 raias · 100 m medley</div>
         <h1 id="tit">Thiago <i>×</i> Luca</h1>
         <p id="rmMenu" class="rmtxt"></p>
+        <div class="turma" id="turma" aria-hidden="true"></div>
         <div class="vs">
           <button class="quem" data-i="3"><span class="foto"></span><b>Thiago</b><small>trocar foto</small></button>
           <span class="x">VS</span>
@@ -314,6 +339,9 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
           <label class="rmrow" id="salaNomeRow" hidden>Seu nome <input id="salaNome" maxlength="12" autocomplete="off" spellcheck="false"></label>
           <p class="como" id="salaAjuda">Cada pessoa abre esta página no seu aparelho, escolhe “Cada um no seu” e toca numa raia livre. Quem entrou primeiro escolhe a prova e dá a largada.</p>
         </div>
+        <div class="opt" id="optLoc" hidden><span>Quem joga neste aparelho</span>
+          <div class="seg" id="segLoc"><button data-v="1">Só eu</button><button data-v="2">2 jogadores</button><button data-v="3">3</button><button data-v="4">4</button></div>
+          <div class="locnomes" id="locNomes"></div></div>
         <div class="opt" id="optProva"><span>Prova</span>
           <div class="seg" id="segProva"><button data-v="nado">Natação</button><button data-v="jet">Jet ski</button></div></div>
         <div class="opt" id="optNado"><span>Nado · 100 m</span>
@@ -343,7 +371,7 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
         <details class="mais" id="donoBox" hidden>
           <summary>Convidados</summary>
           <div class="dentro">
-            <p class="como">Coloque aqui o e-mail de quem pode entrar. Na primeira entrada a pessoa cria a própria senha. Se alguém esquecer a senha, tire da lista e convide de novo.</p>
+            <p class="como">Coloque aqui o e-mail de quem pode entrar. Na primeira entrada a pessoa cria a própria senha. Se alguém esquecer a senha, toque em “Senha nova”: na próxima entrada ela cria outra.</p>
             <form class="rmrow" id="cvForm" novalidate><input id="cvEmail" type="email" inputmode="email" placeholder="e-mail do convidado" maxlength="120" autocomplete="off" spellcheck="false"><button class="mini" type="submit">Convidar</button></form>
             <p class="perro" id="cvErro" role="alert"></p>
             <ul class="cvlista" id="cvLista"></ul>
@@ -359,6 +387,7 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
         <div class="eyebrow" id="fimSub">Resultado oficial</div>
         <h1 id="fimTit">Luca venceu!</h1>
         <p id="fimRM" class="rmtxt"></p>
+        <p id="fimMsg" class="como incentivo"></p>
         <div class="podio" id="podio"></div>
         <button class="go" id="btDeNovo">Revanche</button>
         <button class="go sec" id="btMenu">Voltar ao início</button>
@@ -384,6 +413,7 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
         <label class="pcampo" id="pcSenha2" hidden><span>Repita a senha</span><input id="pSenha2" type="password" autocomplete="new-password" maxlength="72"></label>
         <p class="perro" id="pErro" role="alert"></p>
         <button class="go" id="pVai" type="submit">Continuar</button>
+        <button class="mini" id="pEsqueci" type="button" hidden>Esqueci a senha</button>
         <button class="mini" id="pVolta" type="button" hidden>Usar outro e-mail</button>
       </form>
     </section>
@@ -462,7 +492,9 @@ const PV=()=>S.prova==='jet'?'jet':S.nado==='medley'?'nado':'nado-'+S.nado;   //
 const JOG=SITE?[3,4,2,5,1,6,0,7]:[3,4,2,5],RAIAEXT=['um','dois','três','quatro','cinco','seis','sete','oito'];
 /* sala entre aparelhos: quando ligada, joga quem ocupou uma raia, de qualquer aparelho */
 const SALA={on:false,sala:null,eu:'',meu:-1,host:false,ocup:{},rodada:0,nome:'',msg:'',rodou:0,resRod:0};
-const ehHumano=i=>SALA.on?!!SALA.ocup[i]:SITE?i===(EU.dono?HT:HL):i===HT?S.modo!=='p1':i===HL?S.modo!=='p0':i===2?(S.modo==='tres'||S.modo==='quatro'):i===5?S.modo==='quatro':false;
+/* no site, fora da sala: quem está logado e até três convidados no mesmo teclado. O dono nada na raia 4; os outros começam pela 5 */
+const LOCAIS=()=>(EU.dono?[3,4,2,5]:[4,2,5,1]).slice(0,clamp(S.nloc||1,1,S.prova==='jet'&&!EU.dono?3:4));
+const ehHumano=i=>SALA.on?!!SALA.ocup[i]:SITE?LOCAIS().includes(i):i===HT?S.modo!=='p1':i===HL?S.modo!=='p0':i===2?(S.modo==='tres'||S.modo==='quatro'):i===5?S.modo==='quatro':false;
 const memG={};                                             // onde o navegador não deixa guardar, vale pelo menos enquanto a página está aberta
 const guarda={
   le(k){try{const v=localStorage.getItem(k);return v==null&&k in memG?memG[k]:v}catch(e){return k in memG?memG[k]:null}},
@@ -484,18 +516,18 @@ function emojiRosto(e){
   g.textAlign='center';g.textBaseline='middle';g.fillText(e,100,110);
   return c.toDataURL('image/png');
 }
-function avatarPadrao(){                                   // rosto desenhado para quem ainda não escolheu foto
+function avatarPadrao(k){const P=[['#e9b98f','#5a3a22'],['#f1c9a5','#2b1d14'],['#c68958','#1c1410'],['#f3d2b3','#b5522b'],['#e9b98f','#5a3a22'],['#e2a878','#d9a441'],['#9b6a44','#141414'],['#f1c9a5','#6b4a2e']][(k|0)%8];                                   // rosto desenhado para quem ainda não escolheu foto
   const c=document.createElement('canvas');c.width=c.height=200;const g=c.getContext('2d');
-  g.fillStyle='#e9b98f';g.fillRect(0,0,200,200);
-  g.fillStyle='#5a3a22';g.beginPath();g.ellipse(100,30,96,56,0,Math.PI,0);g.fill();
+  g.fillStyle=P[0];g.fillRect(0,0,200,200);
+  g.fillStyle=P[1];g.beginPath();g.ellipse(100,30,96,56,0,Math.PI,0);g.fill();
   g.fillStyle='#2b1d14';[[70,98],[130,98]].forEach(([x,y])=>{g.beginPath();g.ellipse(x,y,9,12,0,0,TAU);g.fill()});
   g.strokeStyle='#2b1d14';g.lineWidth=6;g.lineCap='round';g.beginPath();g.arc(100,126,34,.15*Math.PI,.85*Math.PI);g.stroke();
   g.fillStyle='rgba(255,120,110,.35)';[[52,128],[148,128]].forEach(([x,y])=>{g.beginPath();g.arc(x,y,13,0,TAU);g.fill()});
   return c.toDataURL('image/jpeg',.9);
 }
 function fonteRosto(i){const q=QUEM[i];if(q.emoji)return emojiRosto(q.emoji);
-  if(SITE)return FOTOSITE[i]||(q.foto!=null?FOTOS[q.foto]:avatarPadrao());            // no site a foto vem do perfil de quem ocupa a raia
-  return guarda.le('raia-face-'+q.k)||(q.foto!=null?FOTOS[q.foto]:avatarPadrao())}
+  if(SITE)return FOTOSITE[i]||(q.foto!=null?FOTOS[q.foto]:avatarPadrao(i));            // no site a foto vem do perfil de quem ocupa a raia
+  return guarda.le('raia-face-'+q.k)||(q.foto!=null?FOTOS[q.foto]:avatarPadrao(i))}
 function preparaRostos(){
   QUEM.forEach((q,i)=>{
     rostos[i]=fonteRosto(i);
@@ -847,6 +879,7 @@ function plano(w,h,m,x,y,z){const o=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
 /* trecho que fecha todo shader feito à mão: converte para cor linear no computador e aceita o acabamento do motor */
 const FIM_GL='\n#ifdef LIN\ngl_FragColor.rgb=pow(max(gl_FragColor.rgb,0.),vec3(2.2));\n#endif\n#include <tonemapping_fragment>\n#include <encodings_fragment>\n';
 const DEF=()=>ALTA?{LIN:1}:{};
+const POSLIN=[];                                         // o que precisa rodar depois que as cores viram lineares (brilhos acima de 1)
 
 /* ambiente para os reflexos dos materiais: uma sala escura com fileiras de refletores e a piscina acesa embaixo */
 if(ALTA){try{
@@ -917,6 +950,7 @@ if(ALTA){
   if(!compo){R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=.95}
 }
 
+const TORCM=[];                                          // malhas da torcida: {im,refl,total}; no reflexo só corpo e cabeça, na refração nada
 const soTela=[];                                         // o que só aparece na tela final (crachás), nunca no reflexo
 let larg=0,alt=0;
 function ajusta(){
@@ -932,7 +966,7 @@ let quadroN=0,econ=0,tMed=0,nMed=0,tAnt=0;
 function mede(){
   const t=performance.now(),d=t-tAnt;tAnt=t;if(d>200||document.hidden)return;
   tMed+=d;if(++nMed<120)return;const m=tMed/nMed;tMed=nMed=0;
-  if(m>27&&econ<2){econ++;if(econ===1){R.setPixelRatio(1);if(compo)compo.setPixelRatio(1);larg=0}}
+  if(m>27&&econ<2){econ++;if(econ===1){R.setPixelRatio(1);if(compo)compo.setPixelRatio(1);larg=0}torcidaNivel(econ)}
 }
 let pulaQ=0;
 function desenha(){
@@ -946,11 +980,13 @@ function desenha(){
   R.shadowMap.autoUpdate=true;
   if(arena.visible&&!sub&&(econ<2||quadroN%2===0)){
     agua.visible=false;soTela.forEach(o=>{o.userData.v=o.visible;o.visible=false});
+    TORCM.forEach(o=>{o.im.visible=o.refl});
     espelho();R.setRenderTarget(rtRefl);R.render(cena,camR);
     R.shadowMap.autoUpdate=false;
+    TORCM.forEach(o=>{o.im.visible=false});
     submersa();const f=cena.background;cena.background=corFundo;
     R.setRenderTarget(rtRefr);R.render(cena,camF);cena.background=f;
-    R.setRenderTarget(null);agua.visible=true;soTela.forEach(o=>{o.visible=o.userData.v});
+    R.setRenderTarget(null);agua.visible=true;soTela.forEach(o=>{o.visible=o.userData.v});TORCM.forEach(o=>{o.im.visible=true});
   }
   if(compo){passeFim.uniforms.uT.value=(quadroN++%240)*.37;compo.render()}else R.render(cena,cam);
 }
@@ -1171,38 +1207,82 @@ for(let i=0;i<14;i++){const f=luz(1.9,0);if(ALTA)f.material.color.setRGB(1.7,1.7
 const CAMISA=[[0xFFD43B,.34],[0x1E9B4B,.17],[0x1B3F9C,.08],[0xF2FAFC,.13],[0xFF5A4E,.08],[0x3EC6E0,.08],[0x9B8CFF,.06],[0xff9f43,.06]];
 const PELE=[0xf1c9a5,0xe2a878,0xc68958,0x9b6a44,0x6f4a30];
 const sorteia=()=>{let r=Math.random();for(const [c,p] of CAMISA){if(r<p)return c;r-=p}return CAMISA[0][0]};
-const gente=[];                                        // {x,y,z,s,cor,pula}
+const gente=[];                                        // {x,y,z,s,cor,pula,ry,u,ofi}
 (function(){
-  const rnd=()=>Math.random()-.5,passo=ALTA?.66:1;
+  const rnd=()=>Math.random()-.5,passo=ALTA?.66:1.15;
+  const fa=(x,y,z,ry,u)=>gente.push({x:x+rnd()*.2,y,z:z+rnd()*.2,s:.9+Math.random()*.25,cor:sorteia(),pula:.4+Math.random(),ry,u});
   for(let k=0;k<NF;k++)for(let x=-12.6;x<37.9;x+=passo){
     if(((x+13)%10.2)<1.1||Math.random()<.07)continue;                       // corredores e lugares vazios
     if(k===0&&Math.abs(x-POOL/2)<1.5)continue;                              // o lugar da vovó
-    gente.push({x:x+rnd()*.2,y:Y0+k*RISE,z:ZA-.55-k*RUN+rnd()*.2,s:.9+Math.random()*.25,cor:sorteia(),pula:.4+Math.random()})}
+    fa(x,Y0+k*RISE,ZA-.55-k*RUN,0,.27+.46*(x+12.6)/50.5)}
   for(let k=0;k<NE;k++)for(let z=-14.6;z<12.7;z+=passo){
     if(((z+15)%9.5)<1.1||Math.random()<.07)continue;
-    [XE-.55-k*RUN,XD+.55+k*RUN].forEach(x=>gente.push({x:x+rnd()*.2,y:YE0+k*RISE,z:z+rnd()*.2,s:.9+Math.random()*.25,cor:sorteia(),pula:.4+Math.random()}))}
-  /* gente do deque: cronometristas sentados atrás de cada bloco, juízes de virada, árbitro de saída */
-  RAIAS.forEach(z=>{gente.push({x:-2.9,y:YD+.42,z,s:.95,cor:0xF2FAFC,pula:0});caixa(.5,.42,.5,mEscuro,-2.9,YD+.21,z)});
-  [-6,-2,2,6].forEach(z=>gente.push({x:POOL+1.7,y:YD,z,s:1.55,cor:0xF2FAFC,pula:0}));
-  gente.push({x:-1.4,y:YD,z:-9.2,s:1.6,cor:0xF2FAFC,pula:0},{x:-1.4,y:YD,z:9.2,s:1.6,cor:0x0e3454,pula:0});
-  for(let k=0;k<9;k++)if(k<3||k>5)gente.push({x:2+k*2.6,y:YD,z:-(W+3.1)-(k%2)*.5,s:1.0+(k%3)*.25,cor:k%2?0x10212e:0x2b3f52,pula:0});   // fotógrafos e equipe
+    fa(XE-.55-k*RUN,YE0+k*RISE,z,Math.PI/2,.27*(12.7-z)/27.3);fa(XD+.55+k*RUN,YE0+k*RISE,z,-Math.PI/2,.73+.27*(z+14.6)/27.3)}
+  /* gente do deque: cronometristas sentados atrás de cada bloco, juízes de virada, árbitro de saída, fotógrafos e equipe */
+  const of=(x,y,z,s,cor,ry)=>gente.push({x,y,z,s,cor,pula:0,ry,u:0,ofi:1});
+  RAIAS.forEach(z=>{of(-2.9,YD+.42,z,.95,0xF2FAFC,Math.PI/2);caixa(.5,.42,.5,mEscuro,-2.9,YD+.21,z)});
+  [-6,-2,2,6].forEach(z=>of(POOL+1.7,YD,z,1.55,0xF2FAFC,-Math.PI/2));
+  of(-1.4,YD,-9.2,1.6,0xF2FAFC,0);of(-1.4,YD,9.2,1.6,0x0e3454,Math.PI);
+  for(let k=0;k<9;k++)if(k<3||k>5)of(2+k*2.6,YD,-(W+3.1)-(k%2)*.5,1.0+(k%3)*.25,k%2?0x10212e:0x2b3f52,0);
 })();
-const fazPovo=(geo,cabeca)=>{
-  const N=gente.length,m=mat(0xffffff),im=new THREE.InstancedMesh(geo,m,N),m4=new THREE.Matrix4(),q=new THREE.Quaternion(),
-    v=new THREE.Vector3(),e=new THREE.Vector3(),c=new THREE.Color(),af=new Float32Array(N*2);
-  gente.forEach((p,i)=>{
-    if(cabeca){v.set(p.x,p.y+.62*p.s+.1,p.z);e.setScalar(1);c.setHex(PELE[i%PELE.length])}
-    else{v.set(p.x,p.y,p.z);e.set(1,p.s,1);c.setHex(p.cor);c.multiplyScalar(.55+Math.random()*.3)}
-    im.setMatrixAt(i,m4.compose(v,q,e));im.setColorAt(i,c);
-    af[i*2]=Math.random()*TAU;af[i*2+1]=p.pula/(cabeca?1:p.s)});
-  geo.setAttribute('aF',new THREE.InstancedBufferAttribute(af,2));
-  m.onBeforeCompile=sh=>{sh.uniforms.uT=UT;sh.uniforms.uAg=UAG;
-    sh.vertexShader='attribute vec2 aF;uniform float uT;uniform float uAg;\n'+sh.vertexShader.replace('#include <begin_vertex>',
-      '#include <begin_vertex>\ntransformed.y+=abs(sin(uT*(2.3+aF.y*1.7)+aF.x))*(.02+.2*uAg)*aF.y;')};
-  im.frustumCulled=false;grupo.add(im);return im;
-};
-const gCorpoP=new THREE.CylinderGeometry(.2,.155,.6,8,1);gCorpoP.translate(0,.31,0);
-fazPovo(gCorpoP,false);fazPovo(new THREE.SphereGeometry(.125,8,6),true);
+/* torcida viva: cada pessoa tem corpo, cabeça com rosto, cabelo e dois braços, e boa parte segura um bastão de luz.
+   Tudo instanciado e animado no shader: pulam com o barulho, levantam os braços e fazem a ola em volta da arena */
+const UOLA={value:0};
+const TORC=`attribute vec4 aF;uniform float uT,uAg,uOla;
+float olaK(){float w=fract(aF.z-uT*.1);float d=min(w,1.-w);return exp(-d*d*650.)*uOla*step(.01,aF.y);}
+float puloK(){return abs(sin(uT*(2.3+aF.y*1.7)+aF.x))*(.02+.2*uAg)*aF.y+olaK()*.38;}
+float bracoK(float lado){float lv=clamp(aF.w+uAg*.8+olaK()*1.6,0.,1.)*step(.01,aF.y);
+  return lado*(mix(2.82,.32,lv)+.5*sin(uT*(4.5+aF.y*2.5)+aF.x*(1.+lado*.35))*lv*(.3+.5*uAg));}
+`;
+(function(){
+  const N=gente.length,m4=new THREE.Matrix4(),q=new THREE.Quaternion(),v=new THREE.Vector3(),e=new THREE.Vector3(),c=new THREE.Color(),EY=new THREE.Vector3(0,1,0);
+  const af=new Float32Array(N*4),CAB=[0x2b1b12,0x141414,0x5a3a1c,0x3a2416,0xd9b56a,0x8d8d8d,0xb5522b,0xFFD43B,0x1E9B4B],
+    BAST=[0x3EC6E0,0xFFC83D,0xF2FAFC,0xFF5A4E,0x9B8CFF,0x5FD38D,0x3EC6E0,0xFFC83D];
+  gente.forEach((p,i)=>{p.luz=!p.ofi&&Math.random()<.42;
+    af[i*4]=Math.random()*TAU;af[i*4+1]=p.pula;af[i*4+2]=p.u||0;af[i*4+3]=p.ofi?0:p.luz?.5+Math.random()*.3:Math.random()*.28});
+  const anima=(m,lado,temNormal)=>{m.onBeforeCompile=sh=>{sh.uniforms.uT=UT;sh.uniforms.uAg=UAG;sh.uniforms.uOla=UOLA;
+    let vs=TORC+sh.vertexShader;const gira='{float a=bracoK('+lado+'.);float c=cos(a),s=sin(a);';
+    if(lado){
+      if(temNormal)vs=vs.replace('#include <beginnormal_vertex>','#include <beginnormal_vertex>\n'+gira+'objectNormal.xy=vec2(objectNormal.x*c+objectNormal.y*s,-objectNormal.x*s+objectNormal.y*c);}');
+      vs=vs.replace('#include <begin_vertex>','#include <begin_vertex>\n'+gira+'transformed.xy=vec2(transformed.x*c+transformed.y*s,-transformed.x*s+transformed.y*c)+vec2('+lado+'.*.185,.45);}\ntransformed.y+=puloK();')}
+    else vs=vs.replace('#include <begin_vertex>','#include <begin_vertex>\ntransformed.y+=puloK();');
+    sh.vertexShader=vs};
+    m.customProgramCacheKey=()=>'torc'+lado+(temNormal?'n':'')};       // cada braço tem o seu programa (o texto do shader muda com o lado)
+  const torno=pts=>new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),ALTA?8:6);
+  const faz=(geo,m,lista,cor,lado,temNormal,refl)=>{
+    const im=new THREE.InstancedMesh(geo,m,lista.length),a=new Float32Array(lista.length*4);
+    lista.forEach((i,k)=>{const p=gente[i];q.setFromAxisAngle(EY,p.ry||0);im.setMatrixAt(k,m4.compose(v.set(p.x,p.y,p.z),q,e.setScalar(p.s)));
+      im.setColorAt(k,cor(p,i));for(let j=0;j<4;j++)a[k*4+j]=af[i*4+j]});
+    geo.setAttribute('aF',new THREE.InstancedBufferAttribute(a,4));anima(m,lado||0,temNormal);im.frustumCulled=false;grupo.add(im);TORCM.push({im,refl:!!refl,total:lista.length});return im};
+  /* oficiais primeiro e o resto em ordem sorteada: assim dá para desenhar só uma parte da torcida em computador fraco sem abrir buraco */
+  const todos=gente.map((p,i)=>i).sort((a,b)=>(gente[b].ofi|0)-(gente[a].ofi|0)||Math.random()-.5),comLuz=todos.filter(i=>gente[i].luz),comBraco=ALTA?todos:comLuz;
+  faz(torno([[0,0],[.135,0],[.162,.06],[.172,.3],[.164,.42],[.12,.5],[.055,.535],[0,.54]]),mat(0xffffff),todos,p=>c.setHex(p.cor).multiplyScalar(p.ofi?1:.62+Math.random()*.3),0,false,true);
+  const texCara=texCanvas(256,128,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);const x=w*.25,y=h*.52;
+    g.fillStyle='rgba(255,90,90,.35)';[-17,17].forEach(d=>{g.beginPath();g.arc(x+d,y+12,7,0,TAU);g.fill()});
+    g.fillStyle='#1c1410';[-10,10].forEach(d=>{g.beginPath();g.ellipse(x+d,y,3.6,5.2,0,0,TAU);g.fill()});
+    g.strokeStyle='#1c1410';g.lineWidth=2.6;g.lineCap='round';g.beginPath();g.arc(x,y+8,9,.18*Math.PI,.82*Math.PI);g.stroke()});
+  const gCab=new THREE.SphereGeometry(.145,ALTA?12:8,ALTA?8:6);gCab.translate(0,.685,0);
+  faz(gCab,mat(0xffffff,{map:texCara}),todos,(p,i)=>c.setHex(PELE[i%PELE.length]),0,false,true);
+  const gCabelo=new THREE.SphereGeometry(.154,ALTA?10:7,4,0,TAU,0,Math.PI*.5);gCabelo.rotateX(-.42);gCabelo.translate(0,.69,-.006);
+  faz(gCabelo,mat(0xffffff),todos,(p,i)=>c.setHex(CAB[(i*7+3)%CAB.length]));
+  const gBraco=()=>torno([[0,0],[.046,.012],[.04,.2],[.036,.28],[.05,.31],[.05,.345],[0,.375]]);
+  faz(gBraco(),mat(0xffffff),comBraco,(p,i)=>c.setHex(PELE[i%PELE.length]),1,true);
+  faz(gBraco(),mat(0xffffff),comBraco,(p,i)=>c.setHex(PELE[i%PELE.length]),-1,true);
+  const gB=new THREE.CylinderGeometry(.02,.02,.27,6,1);gB.translate(0,.5,0);
+  const mB=basico({color:0xffffff});
+  faz(gB,mB,comLuz,(p,i)=>c.setHex(BAST[i%BAST.length]),1,false);
+  POSLIN.push(()=>mB.color.multiplyScalar(2.3));
+})();
+/* computador que não dá conta desenha menos gente (60% e depois 40%); os oficiais do deque ficam sempre */
+function torcidaNivel(n){const f=[1,.6,.4][n]||1;TORCM.forEach(o=>{o.im.count=Math.max(Math.min(o.total,30),Math.round(o.total*f))})}
+/* luz geral da arena: no modo show ela cai e sobram a piscina acesa, os painéis e as luzes da torcida */
+const LZ=[];cena.traverse(o=>{if(o.isLight)LZ.push([o,o.intensity])});
+let painelBase=null;
+function luzGeral(k){
+  LZ.forEach(([o,b])=>{o.intensity=b*k});
+  if(!painelBase)painelBase=mPainel.color.clone();
+  mPainel.color.copy(painelBase).multiplyScalar(.12+.88*k);
+}
 
 /* ---------- painéis de LED: fita na mureta da arquibancada, placa na borda da piscina e fundo de mídia atrás dos blocos ---------- */
 let ledProva='100 M MEDLEY';
@@ -1347,7 +1427,13 @@ function arenaTic(dt,T){
   feixes.forEach((f,k)=>{f.material.opacity=.035+.02*Math.sin(T*.9+k*1.9)+.03*clamp(ag,0,1.2)});
   const festa=S.fase==='fim'||S.fase==='chegada'||(S.fase==='marcas'&&S.t<(S.ti||0))||S.fase==='menu'?1:0;
   S.show=lerp(S.show||0,festa,1-Math.exp(-dt*2));
-  canhoes.forEach(({p,c,k})=>{c.material.opacity=.075*S.show;c.visible=S.show>.02;
+  /* modo show: na apresentação e na festa a arena escurece, a piscina fica acesa por baixo e a torcida levanta as luzes e faz a ola */
+  const intro=S.fase==='marcas'&&S.t<(S.ti||0);
+  const alvoB=!ALTA?0:S.fase==='menu'?.5:intro?(S.t<VOO?1:.5):S.fase==='fim'?(S.cerim>=0?.78:.45):S.fase==='chegada'?.3:0;
+  S.breu=lerp(S.breu||0,alvoB,1-Math.exp(-dt*(alvoB<(S.breu||0)?5:1.6)));luzGeral(1-.8*S.breu);
+  UOLA.value=lerp(UOLA.value,intro||S.fase==='fim'||S.fase==='chegada'?1:0,1-Math.exp(-dt*1.5));
+  showTic(dt,T);
+  canhoes.forEach(({p,c,k})=>{c.material.opacity=(.075+.1*S.breu)*S.show;c.visible=S.show>.02;
     p.rotation.z=.55*Math.sin(T*.5+k*1.3);p.rotation.x=.45*Math.sin(T*.37+k*2.1)});
   mLedBloco.color.setRGB(.03,.12,.18);
   if(S.fase==='prova'&&S.prova!=='jet'&&S.t-S.tGo<.3)mLedBloco.color.setRGB(5,5,5);       // estrobo do sinal de partida
@@ -1507,7 +1593,7 @@ const vovoJ=fazVovo(barco);vovoJ.g.position.set(-.9,.75,0);vovoJ.g.scale.setScal
 
 /* troca o cenário: arena coberta à noite ou mar aberto no fim de tarde */
 function cenario(p){
-  const j=p==='jet';arena.visible=!j;mar.visible=j;
+  const j=p==='jet';arena.visible=!j;mar.visible=j;if(j){luzGeral(1);S.breu=0}
   cena.fog.color.setHex(j?0x5a4660:0x04121F);cena.fog.near=j?75:70;cena.fog.far=j?190:170;if(ALTA)cena.fog.color.convertSRGBToLinear();
 }
 grupo=arena;
@@ -1515,9 +1601,22 @@ grupo=arena;
 /* ===== b3: atletas. Corpo modelado, pele molhada, bermuda de competição, cabeça com o rosto da foto,
    touca com o nome, óculos; rivais são bichos fantasiados. Poses de bloco, mergulho, quatro nados, virada e festa ===== */
 const QUAD=-.62,L1=.46,L2=.5,B1=.30,B2=.33;             // quadril, coxa, canela com pé, braço, antebraço com mão
-const matPele=c=>ALTA?new THREE.MeshPhysicalMaterial({color:c,roughness:.48,metalness:0,clearcoat:.55,clearcoatRoughness:.28}):matS(c,.5);
+/* luz de contorno: um fio de luz azulada na silhueta, como personagem de desenho animado iluminado por trás */
+function contorno(m,f){m.onBeforeCompile=sh=>{sh.uniforms.uRim={value:f};
+  sh.fragmentShader='uniform float uRim;\n'+sh.fragmentShader.replace('#include <tonemapping_fragment>',
+    '{float fr=pow(1.-clamp(dot(normalize(normal),normalize(vViewPosition)),0.,1.),2.4);gl_FragColor.rgb+=vec3(.3,.72,1.)*fr*uRim;}\n#include <tonemapping_fragment>')};return m}
+const matPele=c=>contorno(ALTA?new THREE.MeshPhysicalMaterial({color:c,roughness:.48,metalness:0,clearcoat:.55,clearcoatRoughness:.28}):matS(c,.5),ALTA?.34:.16);
 const rr=(g,x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath()};
 
+/* desenho do tronco: peitoral, abdômen, umbigo e costas em traço suave, por cima do tom de pele (a frente fica em u=0,25) */
+const texTronco=texCanvas(256,256,(g,w,h)=>{g.fillStyle='#fff';g.fillRect(0,0,w,h);
+  const X=u=>u*w,Y=v=>(1-v)*h;g.lineCap='round';g.shadowColor='rgba(110,55,30,.3)';g.shadowBlur=9;g.strokeStyle='rgba(110,55,30,.17)';
+  g.lineWidth=3;g.beginPath();g.moveTo(X(.25),Y(.15));g.lineTo(X(.25),Y(.37));g.stroke();
+  [-1,1].forEach(s=>{g.lineWidth=3.6;g.beginPath();g.ellipse(X(.25+s*.064),Y(.475),w*.057,h*.085,0,.1*Math.PI,.9*Math.PI);g.stroke();
+    g.lineWidth=2.4;[.21,.29].forEach(v=>{g.beginPath();g.moveTo(X(.25+s*.02),Y(v));g.lineTo(X(.25+s*.062),Y(v+.008));g.stroke()})});
+  g.fillStyle='rgba(110,55,30,.42)';g.beginPath();g.arc(X(.25),Y(.12),2.6,0,TAU);g.fill();
+  g.lineWidth=3;g.beginPath();g.moveTo(X(.75),Y(.12));g.lineTo(X(.75),Y(.6));g.stroke();
+  [-1,1].forEach(s=>{g.beginPath();g.ellipse(X(.75+s*.075),Y(.5),w*.046,h*.07,0,.15*Math.PI,.85*Math.PI);g.stroke()})});
 /* etiqueta antiga (o jet ski ainda usa) */
 function etiqueta(q){
   const s=new THREE.Sprite(new THREE.SpriteMaterial({transparent:true,depthWrite:false,map:texCanvas(256,72,g=>{
@@ -1552,7 +1651,7 @@ function pintaCabeca(i,im){
   let r=226,gg=168,b=120;if(px.length){r=gg=b=0;px.forEach(p=>{r+=p[1];gg+=p[2];b+=p[3]});r/=px.length;gg/=px.length;b/=px.length}
   const base=new THREE.Color(q.pele);r=lerp(r,base.r*255,.3);gg=lerp(gg,base.g*255,.3);b=lerp(b,base.b*255,.3);    // puxa um pouco para um tom de pele padrão
   const css='rgb('+Math.round(r)+','+Math.round(gg)+','+Math.round(b)+')';
-  m.pele.setRGB(r/255,gg/255,b/255);m.mPele.color.copy(m.pele);if(ALTA)m.mPele.color.convertSRGBToLinear();
+  m.pele.setRGB(r/255,gg/255,b/255);m.mPele.color.copy(m.pele);if(ALTA)m.mPele.color.convertSRGBToLinear();if(m.mTronco)m.mTronco.color.copy(m.mPele.color);
   const t=document.createElement('canvas');t.width=t.height=256;const tg=t.getContext('2d'),R2=F[2]*w;
   tg.save();tg.translate(128,128);tg.rotate(F[3]);tg.drawImage(im,F[0]*w-R2,F[1]*h-R2,R2*2,R2*2,-128,-128,256,256);tg.restore();
   tg.globalCompositeOperation='destination-in';tg.save();tg.translate(128,132);tg.scale(1,1.16);
@@ -1564,19 +1663,20 @@ function pintaCabeca(i,im){
 
 function criaNadador(i,pai,base){
   const q=QUEM[i],hum=!q.emoji,g=new THREE.Group(),corpo=new THREE.Group(),esc=i===HL&&!SITE?.8:1;g.add(corpo);
-  const pele=base?base.pele:new THREE.Color(hum?q.pele:q.cor),mPele=base?base.mPele:(hum?matPele(pele):matS(q.cor,.42));
-  const escuro=new THREE.Color(q.cor).multiplyScalar(hum?1:.62),mSunga=matS(escuro,.5),mTouca=matS(q.cor,.3);
+  const pele=base?base.pele:new THREE.Color(hum?q.pele:q.cor),mPele=base?base.mPele:(hum?matPele(pele):contorno(matS(q.cor,.42),ALTA?.3:.14));
+  const escuro=new THREE.Color(q.cor).multiplyScalar(hum?1:.62),mSunga=contorno(matS(escuro,.5),ALTA?.3:.14),mTouca=matS(q.cor,.3);
   const pc=(geo,m,x,y,z,sx,sy,sz,pai)=>{const o=new THREE.Mesh(geo,m);o.position.set(x,y,z);o.scale.set(sx||1,sy||1,sz||1);(pai||corpo).add(o);return o};
   const tubo=(r1,r2,c,m)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(r2,r1,c,12),m);o.rotation.z=-Math.PI/2;o.position.x=c/2;return o};
   const torno=(pts,m)=>{const o=new THREE.Mesh(new THREE.LatheGeometry(pts.map(p=>new THREE.Vector2(p[0],p[1])),22),m);
     o.rotation.z=-Math.PI/2;o.scale.set(.74,1,1.28);corpo.add(o);return o};
+  const mTronco=base?base.mTronco:(hum?matPele(pele):mPele);if(hum&&!base)mTronco.map=texTronco;
   torno([[0,-.675],[.10,-.67],[.15,-.63],[.16,-.55],[.152,-.47]],mSunga);                                   // bermuda
-  torno([[.152,-.47],[.136,-.38],[.142,-.28],[.166,-.16],[.19,-.06],[.19,0],[.15,.045],[.088,.075],[.064,.11],[.06,.16]],mPele);   // tronco e pescoço
+  torno([[.152,-.47],[.13,-.38],[.138,-.28],[.168,-.16],[.2,-.07],[.202,-.01],[.16,.04],[.092,.075],[.068,.11],[.064,.16]],mTronco);   // tronco e pescoço
 
   /* cabeça: no referencial dela, o rosto olha para +x e o alto da cabeça é +y */
   const cabeca=new THREE.Group();cabeca.position.set(.12,0,0);corpo.add(cabeca);
   const cranio=new THREE.Group();cranio.position.set(.215,-.012,0);cranio.rotation.z=-Math.PI/2;cabeca.add(cranio);
-  let rostoTela=null,rostoTex=null,pintaTouca=()=>{};
+  let rostoTela=null,rostoTex=null,pintaTouca=()=>{},olhos=null;
   if(hum){
     pc(BOLA,mPele,0,0,0,.196,.216,.186,cranio);
     if(base){rostoTela=base.rostoTela;rostoTex=base.rostoTex}else{
@@ -1597,10 +1697,15 @@ function criaNadador(i,pai,base){
     const og=new THREE.Group();og.rotation.z=.55;cranio.add(og);                                              // óculos erguidos na touca
     const tira=pc(new THREE.TorusGeometry(.2,.007,6,36),matS(0x10212e,.4),0,.075,0,1,1,.96,og);tira.rotation.x=Math.PI/2;
     [-1,1].forEach(s=>pc(BOLA,matS(0x0b1d2b,.12,{metalness:.5}),.186,.082,s*.052,.022,.034,.046,og));
+    cranio.scale.setScalar(1.14);cranio.position.x+=.024;                                                    // cabeça maior: mais desenho animado, o rosto aparece mais
   }else{
     pc(BOLA,mPele,0,0,0,.235,.235,.225,cranio);
     const br=matS(0xf2fafc,.5),pr=matS(0x10212e,.3),t=q.nome;
-    [-1,1].forEach(s=>{pc(BOLA,br,.19,.055,s*.09,.052,.058,.052,cranio);pc(BOLA,pr,.232,.055,s*.094,.024,.03,.026,cranio)});
+    /* olhos grandes de desenho, com brilho, que piscam; bochechas rosadas */
+    olhos=[];const mBri=basico({color:0xffffff}),mBoch=matS(0xff8fa3,.7);
+    [-1,1].forEach(s=>{const o=new THREE.Group();o.position.set(.183,.062,s*.098);cranio.add(o);olhos.push(o);
+      pc(BOLA,br,0,0,0,.066,.074,.066,o);pc(BOLA,pr,.045,-.004,s*.006,.032,.042,.036,o);pc(BOLA,mBri,.071,.016,s*.006-.014,.011,.013,.011,o);
+      pc(BOLA,mBoch,.17,-.05,s*.152,.018,.032,.04,cranio)});
     if(t==='Pinguim'){pc(BOLA,br,-.3,-.09,0,.31,.07,.17);pc(CONE,matS(0xff9f43,.5),.27,-.035,0,.055,.13,.07,cranio).rotation.z=-Math.PI/2}
     else if(t==='Polvo'){cranio.scale.set(1.15,1.28,1.15);pc(BOLA,pr,.225,-.07,0,.02,.02,.045,cranio)}
     else if(t==='Tubarão'){pc(CONE,mPele,.25,-.03,0,.15,.3,.17,cranio).rotation.z=-Math.PI/2;pc(BOLA,br,.21,-.1,0,.1,.03,.11,cranio);
@@ -1608,14 +1713,17 @@ function criaNadador(i,pai,base){
     else if(t==='Golfinho'){pc(BOLA,mPele,.28,-.06,0,.14,.048,.06,cranio);pc(CONE,mPele,-.3,.19,0,.15,.26,.035).rotation.z=.7;pc(BOLA,br,-.3,-.09,0,.3,.06,.15)}
     else if(t==='Baleia'){cranio.scale.setScalar(1.2);const ag=matS(0x9fe6f5,.3);pc(BOLA,ag,.02,.27,0,.03,.1,.03);pc(BOLA,ag,.07,.36,.04,.035,.035,.035);pc(BOLA,ag,-.04,.38,-.04,.03,.03,.03);
       pc(BOLA,br,-.3,-.09,0,.3,.06,.16)}
+    else if(t==='Jacaré'){const dn=matS(0xfdfdf6,.4);pc(BOLA,mPele,.3,-.05,0,.21,.062,.105,cranio);                  // focinho comprido, dentes, narinas e a crista nas costas
+      [-1,1].forEach(s=>{pc(BOLA,dn,.31,-.085,s*.06,.16,.016,.03,cranio);pc(BOLA,pr,.47,-.012,s*.035,.012,.012,.014,cranio)});
+      [-.12,-.3,-.48].forEach(x=>{pc(CONE,mSunga,x,.15,0,.045,.11,.03)});pc(BOLA,br,-.3,-.09,0,.3,.06,.15)}
     else{pc(BOLA,matS(0x2e8f5c,.6),-.3,.085,0,.37,.14,.27);pc(BOLA,matS(0xb7e8a0,.6),-.3,.06,0,.39,.05,.29)}       // tartaruga: casco
   }
   const membro=(c1,c2,e1,e2,e3,ponta,m1,m2)=>{const p=new THREE.Group(),cot=new THREE.Group();cot.position.x=c1;   // raios: começo, junta, ponta
     p.add(tubo(e1,e2,c1,m1),cot);pc(BOLA,m1,0,0,0,e1,e1,e1,p);pc(BOLA,m2,0,0,0,e2,e2,e2,cot);cot.add(tubo(e2,e3,c2,m2));
     pc(BOLA,m2,c2+ponta[0]*.7,0,0,ponta[0],ponta[1],ponta[2],cot);p.cot=cot;return p};
-  const bE=membro(B1,.27,.072,.054,.04,[.092,.027,.054],mPele,mPele),bD=membro(B1,.27,.072,.054,.04,[.092,.027,.054],mPele,mPele);
+  const bE=membro(B1,.27,.088,.066,.05,[.1,.036,.066],mPele,mPele),bD=membro(B1,.27,.088,.066,.05,[.1,.036,.066],mPele,mPele);       // membros encorpados e mãos grandes
   bE.position.set(-.02,0,.255);bD.position.set(-.02,0,-.255);corpo.add(bE,bD);
-  const pE=membro(L1,.42,.094,.068,.046,[.115,.03,.048],mSunga,mPele),pD=membro(L1,.42,.094,.068,.046,[.115,.03,.048],mSunga,mPele);
+  const pE=membro(L1,.42,.114,.082,.056,[.13,.04,.064],mSunga,mPele),pD=membro(L1,.42,.114,.082,.056,[.13,.04,.064],mSunga,mPele);
   pE.position.set(QUAD,0,.088);pD.position.set(QUAD,0,-.088);pE.rotation.y=pD.rotation.y=Math.PI;corpo.add(pE,pD);
   const med=new THREE.Group(),mMed=matS(0xffcf3a,.25,{metalness:.85}),mFitaM=matS(0x1E9B4B,.7),ym=hum?-.124:-.172;med.visible=false;corpo.add(med);   // medalha do pódio
   [-1,1].forEach(sg=>{pc(new THREE.BoxGeometry(.34,.008,.026),mFitaM,-.1,ym,sg*.05,1,1,1,med).rotation.y=sg*.28});
@@ -1628,7 +1736,7 @@ function criaNadador(i,pai,base){
   const crachaTex=base?base.crachaTex:new THREE.CanvasTexture(crachaTela);
   const tag=new THREE.Sprite(new THREE.SpriteMaterial({map:crachaTex,transparent:true,depthWrite:false,depthTest:false}));tag.renderOrder=5;g.add(tag);soTela.push(tag);
   if(pai)pai.add(g);else{g.position.z=RAIAS[i];arena.add(g)}
-  return {g,corpo,cabeca,cranio,bE,bD,pE,pD,brilho,med,mMed,pintaTouca,tag,esc,hum,pele,mPele,rostoTela,rostoTex,crachaTela,crachaTex,tagL:hum?1.5:.95,tagA:hum?.48:.307};
+  return {g,corpo,cabeca,cranio,olhos,mTronco,bE,bD,pE,pD,brilho,med,mMed,pintaTouca,tag,esc,hum,pele,mPele,rostoTela,rostoTex,crachaTela,crachaTex,tagL:hum?1.5:.95,tagA:hum?.48:.307};
 }
 
 /* ---------- água que voa: gotas, anéis na superfície e névoa do mergulho ---------- */
@@ -1689,6 +1797,7 @@ const _wp=new THREE.Vector3();
 function posa(n,dt){
   if(S.prova==='jet')return posaJet(n,dt);
   const m=n.m,T=S.t,e=m.esc,a=n.ph*TAU,sn=Math.sin(a),f=S.fase,XB=-.5,YB=.735,YG=.52,XA=-1.42;
+  if(m.olhos){const pb=((TT*.31+n.i*.37)%1)>.955?.1:1;m.olhos.forEach(o=>{o.scale.y=pb})}                  // os bichos piscam
   [m.bE,m.bD].forEach(o=>{o.rotation.set(0,0,0);o.cot.rotation.set(0,0,0)});
   [m.pE,m.pD].forEach(o=>{o.rotation.set(0,Math.PI,0);o.cot.rotation.set(0,0,0)});
   let rz=0,rx=0,cx=0,cy=-.1,hz=.2,hx=0,giro=n.dir>0?0:Math.PI,pes=null,maos=null,lugar=null,passada=1;
@@ -1808,6 +1917,125 @@ function posa(n,dt){
   if(n.fundo<.15&&iE(n.perna)!==2&&Math.random()<dt*n.v*5)espirra(n.x+n.dir*.6,.04,z+(Math.random()-.5)*.5,1,1.1);
 }
 
+/* ===== b12: o show. Faíscas coloridas que brilham de verdade (fogos, chafarizes de faísca, rastro arco-íris do turbo,
+   estrelas do "Perfeito!") e os bonecos de posto dançando na borda da piscina ===== */
+const NL=ALTA?5200:900,lPos=new Float32Array(NL*3),lCor=new Float32Array(NL*3),lC0=new Float32Array(NL*3),lTam=new Float32Array(NL),lT0=new Float32Array(NL),
+  lVel=new Float32Array(NL*3),lVida=new Float32Array(NL),lDur=new Float32Array(NL),lG=new Float32Array(NL);let lI=0;
+for(let k=0;k<NL;k++)lPos[k*3+1]=-60;
+const lGeo=new THREE.BufferGeometry();
+lGeo.setAttribute('position',new THREE.BufferAttribute(lPos,3));lGeo.setAttribute('cor',new THREE.BufferAttribute(lCor,3));lGeo.setAttribute('tam',new THREE.BufferAttribute(lTam,1));
+const luzes=new THREE.Points(lGeo,new THREE.ShaderMaterial({defines:DEF(),uniforms:{uPx:{value:600}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  vertexShader:'attribute vec3 cor;attribute float tam;uniform float uPx;varying vec3 vC;void main(){vC=cor;vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=min(tam*uPx/max(.5,-mv.z),90.);}',
+  fragmentShader:'varying vec3 vC;void main(){float r=length(gl_PointCoord-.5)*2.;float a=smoothstep(1.,0.,r);a=a*a*.75+.7*smoothstep(.4,0.,r);gl_FragColor=vec4(vC*2.1,a);'+FIM_GL+'}'}));
+luzes.frustumCulled=false;cena.add(luzes);
+function faisca(x,y,z,vx,vy,vz,cor,tam,dur,g){
+  const j=lI++%NL,i=j*3;lPos[i]=x;lPos[i+1]=y;lPos[i+2]=z;lVel[i]=vx;lVel[i+1]=vy;lVel[i+2]=vz;
+  lC0[i]=cor[0];lC0[i+1]=cor[1];lC0[i+2]=cor[2];lT0[j]=tam;lVida[j]=lDur[j]=dur;lG[j]=g}
+const _hc=new THREE.Color(),corArco=(h,l)=>{_hc.setHSL(((h%1)+1)%1,1,l||.6);return [_hc.r,_hc.g,_hc.b]};
+const CORF=[[.24,.78,.88],[1,.78,.24],[1,.35,.31],[.61,.55,1],[.95,.98,1],[.37,.83,.55],[1,.5,.85]];
+/* um fogo: bola de faíscas que abre, cai devagar e apaga, com miolo branco */
+function fogo(x,y,z,cor,n,f){
+  n=ALTA?n:Math.ceil(n*.4);
+  for(let k=0;k<n;k++){const u=Math.random()*2-1,a=Math.random()*TAU,r=Math.sqrt(1-u*u),v=f*(.55+.45*Math.random());
+    const c=k%7===0?CORF[4]:cor,d=1.1+Math.random()*.9,vx=r*Math.cos(a)*v,vz=r*Math.sin(a)*v;
+    faisca(x,y,z,vx,u*v,vz,c,.3+Math.random()*.16,d,2.4);
+    if(ALTA){faisca(x,y,z,vx*.9,u*v*.9,vz*.9,c,.2,d*.8,2.4);faisca(x,y,z,vx*.8,u*v*.8,vz*.8,c,.13,d*.62,2.4)}}
+  for(let k=0;k<5;k++)faisca(x,y,z,0,0,0,CORF[4],1.5,.18,0);
+}
+const showFila=[],chafs=[];
+const showDepois=(seg,fn)=>showFila.push({em:TT+seg,fn});
+function fogos(n,x0,x1,y0,y1,z0,z1,esp){for(let k=0;k<n;k++)showDepois(k*esp*(.7+.6*Math.random()),()=>{
+  const x=lerp(x0,x1,Math.random()),y=lerp(y0,y1,Math.random()),z=lerp(z0,z1,Math.random());
+  fogo(x,y,z,CORF[Math.floor(Math.random()*CORF.length)],70+Math.floor(Math.random()*40),4.2+Math.random()*2.2)})}
+/* chafariz de faísca na borda da piscina (como nas arenas): jorra para cima por alguns segundos */
+function chafariz(x,z,dur,cor){chafs.push({x,z,ate:TT+dur,cor:cor||CORF[1]})}
+function chafarizes(dur,cor){[1.2,5.8,10.4,14.6,19.2,23.8].forEach((x,k)=>showDepois(k*.07,()=>chafariz(x,-(W+.75),dur,k%2?CORF[4]:cor)))}
+/* estrelinhas de quem acertou a braçada em cheio e estouro de quem ligou o turbo */
+function estrelas(n){if(S.prova==='jet')return;const z=RAIAS[n.i];for(let k=0;k<(ALTA?9:4);k++){const a=Math.random()*TAU;
+  faisca(n.x+n.dir*.3,.25,z,Math.cos(a)*1.3,2.2+Math.random()*1.6,Math.sin(a)*1.3,k%3?CORF[1]:CORF[4],.1,.55+Math.random()*.3,4.5)}}
+function estouro(x,y,z,n){S.treme=.6;for(let k=0;k<(ALTA?n:Math.ceil(n*.4));k++){const a=Math.random()*TAU,v=1.5+Math.random()*2.5;
+  faisca(x,y,z,Math.cos(a)*v,1.5+Math.random()*3,Math.sin(a)*v,corArco(k/n),.12,.6+Math.random()*.5,5)}}
+/* momentos do espetáculo */
+function showAbertura(){if(CALMO||S.prova==='jet')return;chafarizes(2.4,CORF[0]);fogos(ALTA?7:2,0,22,4,8,-20,-12,.4)}
+function showChegada(n){if(CALMO||S.prova==='jet')return;S.treme=n.remoto?.4:.9;
+  const z=RAIAS[n.i];for(let k=0;k<(ALTA?26:10);k++){const a=Math.random()*Math.PI;faisca(n.x,.15,z,Math.cos(a)*2*(n.x<POOL/2?1:.2)+(n.x<POOL/2?1.5:-1.5),2+Math.random()*3.5,(Math.random()-.5)*3,k%2?CORF[1]:CORF[4],.09,.7+Math.random()*.5,6)}
+  if(n.pos===1){chafarizes(2.2,CORF[1]);fogos(ALTA?8:2,-5,9,3.4,7,-16,-9.5,.34)}}
+function showRecorde(){if(CALMO||S.prova==='jet')return;fogos(ALTA?12:3,-6,14,3.4,7.5,-17,-9.5,.28)}
+function showPodio(){if(CALMO||S.prova==='jet')return;chafs.length=0;[-4.7,-3.4,3.4,4.7].forEach((d,k)=>showDepois(k*.08,()=>chafariz(PODX+d,PODZ-.35,5,k%2?CORF[4]:CORF[1])));fogos(ALTA?18:4,4,21,3.2,5.6,-20,-15,.5)}
+/* palavras que saltam em cima do nadador ("Perfeito!", "TURBO!", "Agora: Peito"): grandes e coloridas, para a criança ver sem tirar o olho da piscina */
+const pops=[];let nPop=0;
+for(let k=0;k<(ALTA?10:6);k++){const c=document.createElement('canvas');c.width=448;c.height=128;const t=new THREE.CanvasTexture(c);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:t,transparent:true,depthTest:false,depthWrite:false,opacity:0}));s.visible=false;s.renderOrder=6;cena.add(s);soTela.push(s);pops.push({s,c,t,v:0,x:0,z:0})}
+function popTexto(n,txt,cor){
+  if(S.prova==='jet'||CALMO)return;const p=pops[nPop++%pops.length],g=p.c.getContext('2d');g.clearRect(0,0,448,128);
+  g.font='900 60px Montserrat,Unbounded,"Arial Black",Arial';g.textAlign='center';g.textBaseline='middle';g.lineJoin='round';
+  g.lineWidth=14;g.strokeStyle='#04121F';g.strokeText(txt.toUpperCase(),224,66,420);g.fillStyle=cor;g.fillText(txt.toUpperCase(),224,66,420);
+  p.t.needsUpdate=true;p.v=1;p.x=n.x+n.dir*.4;p.z=RAIAS[n.i];p.s.visible=true}
+const _pv=new THREE.Vector3();
+function movePops(dt){
+  pops.forEach(p=>{if(p.v<=0)return;p.v-=dt*1.15;if(p.v<=0){p.s.visible=false;p.s.material.opacity=0;return}
+    const k=1-p.v,e=k<.14?k/.14*1.22:Math.max(1,1.22-(k-.14)*1.6),fd=clamp(cam.position.distanceTo(_pv.set(p.x,1,p.z))/11,.7,2.2);
+    p.s.position.set(p.x,.95+k*.85,p.z);p.s.scale.set(2.2*e*fd,.629*e*fd,1);p.s.material.opacity=p.v>.3?1:p.v/.3})}
+const _v2=new THREE.Vector2();let luzPara=false;          // luzPara: congela as faíscas (só para a foto de conferência)
+function moveLuzes(dt){
+  if(luzPara){luzes.material.uniforms.uPx.value=R.getDrawingBufferSize(_v2).y/(2*Math.tan(cam.fov*Math.PI/360));return}
+  for(let k=showFila.length-1;k>=0;k--)if(TT>=showFila[k].em){const f=showFila[k].fn;showFila.splice(k,1);f()}
+  for(let k=chafs.length-1;k>=0;k--){const c=chafs[k];if(TT>c.ate){chafs.splice(k,1);continue}
+    for(let j=0;j<(ALTA?5:1);j++)faisca(c.x,YD+.1,c.z,(Math.random()-.5)*1.1,6.2+Math.random()*2.6,(Math.random()-.5)*1.1,Math.random()<.3?CORF[4]:c.cor,.075,.7+Math.random()*.45,9.5)}
+  for(let k=0;k<NL;k++){if(lVida[k]<=0)continue;const i=k*3;lVida[k]-=dt;
+    if(lVida[k]<=0){lPos[i+1]=-60;lTam[k]=0;continue}
+    const ar=Math.exp(-1.5*dt);lVel[i]*=ar;lVel[i+1]=lVel[i+1]*ar-lG[k]*dt;lVel[i+2]*=ar;
+    lPos[i]+=lVel[i]*dt;lPos[i+1]+=lVel[i+1]*dt;lPos[i+2]+=lVel[i+2]*dt;
+    const f=lVida[k]/lDur[k],b=Math.pow(f,.8)*(.75+.25*Math.sin(k*12.9+TT*38));
+    lCor[i]=lC0[i]*b;lCor[i+1]=lC0[i+1]*b;lCor[i+2]=lC0[i+2]*b;lTam[k]=lT0[k]*(.45+.55*f)}
+  lGeo.attributes.position.needsUpdate=lGeo.attributes.cor.needsUpdate=lGeo.attributes.tam.needsUpdate=true;
+  movePops(dt);
+  luzes.material.uniforms.uPx.value=R.getDrawingBufferSize(_v2).y/(2*Math.tan(cam.fov*Math.PI/360));
+}
+
+/* ---------- bonecos de posto: quatro tubos de ar dançando atrás do painel, do outro lado da piscina ---------- */
+const bonecos=[];
+(function(){
+  const H=3.4,R0=.36,cores=['#3EC6E0','#FFC83D','#FF5A4E','#9B8CFF'];
+  const junta=(lista)=>{                                      // junta geometrias numa só, marcando em aB a que altura do corpo cada pedaço está preso e quanto ele é braço
+    let n=0;lista.forEach(o=>{o.g=o.g.toNonIndexed();n+=o.g.attributes.position.count});
+    const P=new Float32Array(n*3),Nn=new Float32Array(n*3),U=new Float32Array(n*2),A=new Float32Array(n*2);let k=0;
+    lista.forEach(o=>{const p=o.g.attributes.position,nn=o.g.attributes.normal,u=o.g.attributes.uv;
+      for(let j=0;j<p.count;j++,k++){P[k*3]=p.getX(j);P[k*3+1]=p.getY(j);P[k*3+2]=p.getZ(j);Nn[k*3]=nn.getX(j);Nn[k*3+1]=nn.getY(j);Nn[k*3+2]=nn.getZ(j);
+        if(o.braco){U[k*2]=.03;U[k*2+1]=.03;A[k*2]=o.braco*Math.abs(p.getX(j)-o.braco*R0*.6);A[k*2+1]=1}else{U[k*2]=u.getX(j);U[k*2+1]=u.getY(j)}}});
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(P,3));g.setAttribute('normal',new THREE.BufferAttribute(Nn,3));
+    g.setAttribute('uv',new THREE.BufferAttribute(U,2));g.setAttribute('aB',new THREE.BufferAttribute(A,2));return g};
+  const corpo=()=>{const g=new THREE.CylinderGeometry(R0*.8,R0,H,14,ALTA?26:14,true);g.rotateY(Math.PI);g.translate(0,H/2,0);return g};
+  const braco=l=>{const g=new THREE.CylinderGeometry(.1,.14,1.3,8,ALTA?10:6,true);g.translate(0,.65,0);g.rotateZ(-l*Math.PI/2);g.translate(l*R0*.6,H*.66,0);return g};
+  [[-1.5,0],[8.6,1],[16.4,2],[26.5,3]].forEach(([x,k])=>{
+    const tx=texCanvas(256,512,(g,w,h)=>{g.fillStyle=cores[k];g.fillRect(0,0,w,h);
+      g.fillStyle='rgba(255,255,255,.22)';for(let j=0;j<5;j++)g.fillRect(0,150+j*72,w,18);
+      const x0=w/2,y0=74;g.fillStyle='#fff';[-34,34].forEach(d=>{g.beginPath();g.arc(x0+d,y0,24,0,TAU);g.fill()});
+      g.fillStyle='#04121F';[-30,38].forEach(d=>{g.beginPath();g.arc(x0+d,y0+3,11,0,TAU);g.fill()});
+      g.strokeStyle='#04121F';g.lineWidth=11;g.lineCap='round';g.beginPath();g.arc(x0,y0+26,40,.12*Math.PI,.88*Math.PI);g.stroke()});
+    const uF={value:k*1.9},m=matS(0xffffff,.62,{map:tx,side:THREE.DoubleSide});
+    m.onBeforeCompile=sh=>{sh.uniforms.uT=UT;sh.uniforms.uF=uF;sh.uniforms.uAg=UAG;
+      sh.vertexShader='attribute vec2 aB;uniform float uT,uF,uAg;\n'+sh.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+      {float hh=aB.y>.5?${(H*.66).toFixed(2)}:transformed.y;float kk=hh/${H.toFixed(2)};float vv=1.+.6*uAg;
+       float cai=.5+.5*sin(uT*1.3*vv+uF*2.3);float dob=kk*kk*(.5+.9*cai);
+       float sx=sin(uT*2.3*vv+uF+kk*2.6)*dob,sz=sin(uT*1.7*vv+uF*1.7+kk*3.1)*.6*dob;
+       if(aB.y>.5){float l=abs(aB.x);transformed.y+=sin(uT*6.*vv+uF+l*3.5)*.55*l+.35*l;transformed.x-=sign(aB.x)*l*.25*(.5+.5*sin(uT*3.1+uF));}
+       transformed.y*=1.-.16*cai*kk;transformed.x+=sx;transformed.z+=sz;}`)};
+    const o=new THREE.Mesh(junta([{g:corpo()},{g:braco(1),braco:1},{g:braco(-1),braco:-1}]),m);
+    o.position.set(x,YD,-(W+2.25));o.frustumCulled=false;grupo.add(o);bonecos.push(o)});
+})();
+/* uma vez por quadro, na arena: rastro arco-íris de quem está no turbo e a festa de quem ganhou */
+function showTic(dt,T){
+  if(S.prova==='jet')return;
+  S.nad.forEach(n=>{
+    if(n.estado==='nadando'&&n.turboT>0&&n.salto<=0){const z=RAIAS[n.i];
+      for(let k=0;k<(ALTA?2:1);k++)faisca(n.x-n.dir*(.7+Math.random()*.5),.05,z+(Math.random()-.5)*.7,-n.dir*.4,.5+Math.random()*.9,(Math.random()-.5)*.5,corArco(T*.9+k*.13+n.i*.11),.15,.75,-.3)}
+    else if(n.estado==='fim'&&n.pos===1&&S.fase!=='menu'&&S.cerim<0&&Math.random()<dt*5){const z=RAIAS[n.i];
+      faisca(n.x+(Math.random()-.5)*.8,.2,z+(Math.random()-.5)*.8,(Math.random()-.5),2+Math.random()*2,(Math.random()-.5),CORF[1],.09,.7,5);
+      if(Math.random()<.3)espirra(n.x+(n.x<POOL/2?.6:-.6),.05,z+(Math.random()-.5)*.6,6,2)}
+  });
+}
+
 /* ===== b4: câmeras de transmissão. No computador a prova é dirigida como TV: voo de abertura, close de cada um
    no bloco, câmera baixa na largada, mergulho de lado, acompanhamento, close com câmera lenta na chegada e festa ===== */
 const camAlvo=new THREE.Vector3(POOL/2,0,0),camPos=new THREE.Vector3(POOL/2,8,19),olha=new THREE.Vector3(POOL/2,0,0);
@@ -1869,6 +2097,7 @@ function filma(dt,T){
   terco(quem);$('#app').classList.toggle('intro',ALTA&&f==='marcas'&&S.t<ti);
   if(nome!==tomada||corte){tomada=nome;corte=0;cam.position.copy(camPos);olha.copy(camAlvo)}   // troca de tomada é corte seco
   const k=1-Math.exp(-dt*vel);cam.position.lerp(camPos,k);olha.lerp(camAlvo,k);cam.lookAt(olha);
+  if(S.treme>0){S.treme=Math.max(0,S.treme-dt*3);if(!CALMO){const a=S.treme*S.treme*.085;cam.position.x+=(Math.random()-.5)*a;cam.position.y+=(Math.random()-.5)*a*.7}}   // tremida curta no mergulho, no turbo e na batida
 }
 cam.position.copy(camPos);
 /* clarão do estrobo no sinal de partida */
@@ -1923,7 +2152,7 @@ function parcial(n,tw){
 
 function mergulha(n){
   n.estado='nadando';n.salto=.55;n.v=3;n.t0=S.t+.8;n.ultB=-1;n.lado=-1;
-  if(n.humano){SOM.mergulho();trocaControle(n)}
+  if(n.humano){SOM.mergulho();trocaControle(n);if(!n.remoto)S.treme=.45}
 }
 function aperta(i,lado){
   if(S.prova==='jet')return apertaJet(i,lado);
@@ -1946,7 +2175,7 @@ function aperta(i,lado){
       if(d<=.085){ganho=1.45;tb=.12;n.combo++;txt=n.combo>1?'Perfeito x'+n.combo:'Perfeito!';SOM.perfeito()}
       else if(d<=.19){ganho=1;tb=.05;n.combo=0;txt='Bom';SOM.bom()}
       else{ganho=.08;tb=-.1;n.combo=0;txt='Fora do tempo';SOM.erro()}
-      if(ganho>.5)espirra(n.x+n.dir*.7,.05,z,7,1.8);
+      if(ganho>.5)espirra(n.x+n.dir*.7,.05,z,7,1.8);if(ganho>1.2)estrelas(n);
     }
   }else{
     if(lado!==n.lado){ganho=e.imp;tb=.018;n.lado=lado;espirra(n.x+n.dir*.6,.05,z+(lado?-.35:.35),2,1.4);
@@ -1957,7 +2186,7 @@ function aperta(i,lado){
   const teto=(e.cap||2.75)*(emTurbo?1.25:1)*(vant?1.1:1);
   n.v=Math.min(Math.max(n.v,0)+ganho*(emTurbo?1.35:1)*(vant?1.25:1),Math.max(teto,n.v));
   n.turbo=clamp(n.turbo+tb,0,1);
-  if(n.turbo>=1&&!emTurbo){n.turbo=0;n.turboT=2.2;txt='TURBO!';SOM.turbo();agita(.35);grita(n.i);narra('Turbo d'+oNome(n)+'!',1);espirra(n.x,.1,z,16,2.4)}
+  if(n.turbo>=1&&!emTurbo){n.turbo=0;n.turboT=2.2;txt='TURBO!';SOM.turbo();agita(.35);grita(n.i);narra('Turbo d'+oNome(n)+'!',1);espirra(n.x,.1,z,16,2.4);estouro(n.x,.2,z,18)}
   if(txt)fala(n,txt);
 }
 
@@ -2011,11 +2240,11 @@ function chegou(n){
   espirra(n.x,.1,zDe(n),18,2.6);
   if(n.casa)grita(n.i,true);
   if(!n.humano){if(n.pos===1)narra(ONome(n)+' bateu na frente!',2);return}
-  trocaControle(n);SOM.toque();
+  trocaControle(n);SOM.toque();showChegada(n);
   if(ALTA&&!S.focoFim){S.focoFim=n;S.lenta=DEMO?0:1.5;corte=1}
-  if(!DEMO&&(!n.remoto||SITE)&&(!S.rm||n.tFim<S.rm.t)){               // no site o recorde vale para todos, venha de que aparelho vier
+  if(!DEMO&&(!n.remoto||SITE)&&(!SITE||SALA.on||n.i===LOCAIS()[0])&&(!S.rm||n.tFim<S.rm.t)){               // no site o recorde vale para todos, venha de que aparelho vier
     S.rm={t:+n.tFim.toFixed(2),nome:n.nome,sp:n.parc.map(v=>+v.toFixed(2))};guarda.poe('raia-rm-'+PV(),JSON.stringify(S.rm));if(SITE&&!n.remoto)siteRecorde(PV(),S.rm.t);
-    S.novoRM=n;SOM.recorde();agita(1);anuncia('NOVO RECORDE MUNDIAL!',2.4);narra(n.nome+' bateu! É recorde mundial!',3);
+    S.novoRM=n;showRecorde();SOM.recorde();agita(1);anuncia('NOVO RECORDE MUNDIAL!',2.4);narra(n.nome+' bateu! É recorde mundial!',3);
     pintaPlacar('RECORDE MUNDIAL!',n.nome.toUpperCase()+' · '+fmt(n.tFim));
   }else if(n.pos===1){SOM.fim();agita(.9);anuncia(n.nome+' tocou primeiro!',1.6);narra('Bateu! '+n.nome+' é o campeão!',3)}
   else{fala(n,n.pos+'º lugar · '+fmt(n.tFim));narra(n.nome+' chega em '+ORD[n.pos-1]+'.',2)}
@@ -2027,7 +2256,7 @@ function encerra(){
   S.nad.forEach(n=>{if(n.estado!=='fim'){n.tFim=tr+(100-distancia(n))*(jt?CURSO/100:1)/Math.max(n.base*.95,.8)+.01;n.previsto=true}});
   const ordem=[...S.nad].sort((a,b)=>(a.dsq?1:0)-(b.dsq?1:0)||a.tFim-b.tFim);ordem.forEach((n,k)=>n.pos=k+1);
   S.fase='fim';linhaRM.visible=false;S.cerim=ALTA&&!jt?0:-1;
-  if(S.cerim===0){torcida(1.15);SOM.fanfarra();anuncia('PÓDIO',1.3);                // cerimônia: os três primeiros sobem na frente da vovó
+  if(S.cerim===0){showPodio();torcida(1.15);SOM.fanfarra();anuncia('PÓDIO',1.3);                // cerimônia: os três primeiros sobem na frente da vovó
     narra('No pódio! Ouro para '+oNome(ordem[0])+', prata para '+oNome(ordem[1])+', bronze para '+oNome(ordem[2])+'!',3)}
   else torcida(.3);
   if(!S.novoRM)pintaPlacar('1º '+ordem[0].nome.toUpperCase(),fmt(ordem[0].tFim));
@@ -2041,7 +2270,7 @@ function passo(dt){
     const ti=S.ti||0,P=S.pr;
     if(T<ti){                                       // apresentação: título, depois cada jogador atrás do seu bloco, com o narrador e o grito da vovó
       const hs=JOG.filter(ehHumano),D=(ti-VOO)/hs.length,k=Math.floor((T-VOO)/D);
-      if(!S.apres){S.apres=1;anuncia('FINAL · '+NADOS[S.nado].t.toUpperCase(),2.1);torcida(.9);narra('Boa noite, Brasil! Final dos cem metros '+NADOS[S.nado].fala+'!',3)}
+      if(!S.apres){S.apres=1;showAbertura();anuncia('FINAL · '+NADOS[S.nado].t.toUpperCase(),2.1);torcida(.9);narra('Boa noite, Brasil! Final dos cem metros '+NADOS[S.nado].fala+'!',3)}
       if(k>=0&&k<hs.length){const i=hs[k],e=2+k*2;
         if(S.apres<e){S.apres=e;S.acena=i;agita(.6);narra(hs.length>4?QUEM[i].nome+'!':'Na raia '+RAIAEXT[i]+', '+QUEM[i].nome+'!',3)}
         if(S.apres===e&&hs.length<=4&&T>VOO+k*D+1.15){S.apres=e+1;grita(i)}}
@@ -2261,6 +2490,14 @@ const chips=QUEM.map((q,i)=>{
   const c=document.createElement('i');c.className='chip'+(q.emoji?' bot':'');c.style.borderColor=q.cor;
   if(q.emoji)c.style.top=i<HT?'27%':'73%';
   $('#pista').appendChild(c);return c});
+/* a turma da piscina no menu: as oito carinhas boiando */
+(function(){const t=$('#turma');if(!t)return;QUEM.forEach((q,i)=>{const im=document.createElement('img');im.alt='';im.dataset.r=i;
+  im.style.borderColor=q.cor;im.style.animationDelay=(-i*.19)+'s';t.appendChild(im)})})();
+/* bolhas subindo atrás dos cartões */
+function bolhasTela(el,n){if(!el)return;const d=document.createElement('div');d.className='bolhas';
+  for(let k=0;k<n;k++){const b=document.createElement('i'),t=8+Math.random()*30;b.style.cssText='left:'+(Math.random()*100).toFixed(1)+'%;width:'+t.toFixed(0)+'px;height:'+t.toFixed(0)+'px;animation-duration:'+(7+Math.random()*10).toFixed(1)+'s;animation-delay:-'+(Math.random()*16).toFixed(1)+'s';d.appendChild(b)}
+  el.insertBefore(d,el.firstChild)}
+bolhasTela($('#menu'),16);bolhasTela($('#fim'),10);bolhasTela($('#porta'),18);
 const chipRM=document.createElement('i');chipRM.className='chip rm';chipRM.textContent='RM';chipRM.hidden=true;$('#pista').appendChild(chipRM);
 const poeChip=(c,d)=>{c.style.left='calc(16px + (100% - 32px)*'+(clamp(d,0,100)/100).toFixed(4)+')'};
 function fotosNaTela(){
@@ -2273,6 +2510,8 @@ let bigT=0;
 function anuncia(txt,dur){const b=$('#big');b.textContent=txt;b.classList.add('show');bigT=dur}
 function treme(ms){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
 function fala(n,txt){
+  if(/Perfeito|TURBO|relâmpago|Agora:/.test(txt)){const mc=txt.match(/x(\d+)/);                // a palavra salta na piscina, em cima do nadador
+    if(!mc||+mc[1]===3||+mc[1]%5===0)popTexto(n,txt.replace(/ ?RT .*$/,''),/TURBO/.test(txt)?'#3EC6E0':/Agora/.test(txt)?'#F2FAFC':'#FFC83D')}
   if(!n.pad)return;const f=n.pad.querySelector('.fb');f.textContent=txt;
   f.classList.remove('pop');void f.offsetWidth;f.classList.add('pop');
   if(/Perfeito|TURBO|relâmpago/.test(txt))treme(14);
@@ -2291,7 +2530,7 @@ function montaPads(){
     const d=document.createElement('div');d.className='pad';d.style.setProperty('--cor',n.cor);
     d.innerHTML='<div class="ph"><img alt="" data-r="'+n.i+'"><span></span><em class="lug"></em><kbd></kbd><div class="tb"><i></i></div></div><div class="ctl"></div><div class="fb"></div>';
     d.querySelector('span').textContent=n.nome;
-    d.querySelector('kbd').textContent=solo?'setas ou espaço':({3:'A  D',4:'←  →',2:'J  L',5:'F  H'}[n.i]||'');
+    d.querySelector('kbd').textContent=solo?'setas ou espaço':({3:'A  D',4:'←  →',2:'J  L',5:'F  H',1:'A  D'}[n.i]||'');
     P.appendChild(d);n.pad=d;n.barra=d.querySelector('.tb i');n.lug=d.querySelector('.lug');trocaControle(n);
   });
   fotosNaTela();
@@ -2317,7 +2556,8 @@ function trocaControle(n){
 const TECLA={KeyA:[HT,0],KeyD:[HT,1],ArrowLeft:[HL,0],ArrowRight:[HL,1],KeyJ:[2,0],KeyL:[2,1],KeyF:[5,0],KeyH:[5,1],Numpad4:[5,0],Numpad6:[5,1]};
 addEventListener('keydown',e=>{
   if(S.fase==='menu'||S.fase==='fim'||e.repeat)return;
-  let m=TECLA[e.code];const hs=S.nad.filter(n=>n.humano&&!n.remoto);
+  let m=TECLA[e.code];if(m&&SITE&&!SALA.on&&!EU.dono&&m[0]===HT)m=[1,m[1]];       // no site, convidado não usa a raia do Thiago: A e D vão para a raia 2
+  const hs=S.nad.filter(n=>n.humano&&!n.remoto);
   if(hs.length===1){const n=hs[0];if(m)m=[n.i,m[1]];else if(e.code==='Space')m=[n.i,n.lado===0?1:0]}
   if(!m)return;e.preventDefault();aperta(m[0],m[1]);
   if(!S.nad.some(o=>o.i===m[0]&&o.humano))return;
@@ -2360,6 +2600,11 @@ function mostraFim(ordem){
   $('#fimSub').textContent=S.prova==='jet'?'Jet ski · 400 m no mar':NADOS[S.nado].t+' · final de 8 raias';
   $('#fimTit').textContent=rm?'Recorde mundial!':v.nome+' venceu!';
   $('#fimRM').textContent=r?'Recorde mundial: '+fmt(r.t)+' · '+r.nome:'';
+  /* uma frase de incentivo para quem jogou sozinho neste aparelho: o jogo é para a criança querer voltar para a piscina */
+  const meus=ordem.filter(n=>n.humano&&!n.remoto),eu=meus.length===1?meus[0]:null,fm=$('#fimMsg');
+  if(fm)fm.textContent=!eu?'':eu.dsq?'Queimou a largada. Espera o sinal e vai de novo!':rm===eu?'Você entrou para a história desta piscina!'
+    :eu.pos===1?'Que prova! Será que dá para baixar esse tempo?'
+    :['Cada treino deixa você mais rápido. Bora de novo?','Campeão é quem volta para a piscina. Mais uma?','Faltou pouco! Respira, concentra e vai de novo.'][Math.floor(Math.random()*3)];
   const P=$('#podio');P.innerHTML='';
   ordem.forEach(n=>{
     let nota='';
@@ -2600,7 +2845,7 @@ function aplicaOnde(){
   const on=SALA.on;$('#salaBox').hidden=!on;$('#segModo').parentElement.hidden=on;
   if(on){$('#extras').hidden=true;salaLiga()}
   else{salaDesliga();const bg=$('#btGo');bg.disabled=false;$('#btDeNovo').hidden=false;if(SITE)siteLocal();else aplicaModo();pintaExtras();aplicaProva();praMenu()}
-  if(SITE)$('#segModo').parentElement.hidden=true;
+  if(SITE){$('#segModo').parentElement.hidden=true;$('#optLoc').hidden=on}
 }
 (function(){
   const bs=$$('#segOnde button'),marca=()=>bs.forEach(b=>b.setAttribute('aria-pressed',String((b.dataset.v==='sala')===SALA.on)));
@@ -2620,6 +2865,7 @@ function aplicaOnde(){
    Entrada por e-mail convidado (a senha é criada na primeira vez), perfil com nome e foto opcional, lista de convidados do dono,
    recordes de todos e a sala em tempo real pelo servidor, no lugar da sala da página publicada. Só entra na montagem do site. */
 let SB=null,pEst='email',pMail='',pOcup=false,tPfNome=0;
+const LOCN=['','Jogador 2','Jogador 3','Jogador 4'];           // nomes dos convidados que jogam no mesmo aparelho
 const SFAKE=SITE&&location.hash.indexOf('sitefake')>=0,fotoCache={};
 const fotoBoa=s=>typeof s==='string'&&s.length<=60000&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(s)?s:'';
 async function rpc(f,a){const r=await SB.rpc(f,a);if(r.error)throw r.error;return r.data}
@@ -2627,18 +2873,20 @@ async function rpc(f,a){const r=await SB.rpc(f,a);if(r.error)throw r.error;retur
 /* ---------- porta de entrada ---------- */
 function pErro(t){$('#pErro').textContent=t||''}
 function portaPasso(e){
-  pEst=e;pErro('');const cria=e==='criar'||e==='dono';
-  $('#pcEmail').hidden=e!=='email';$('#pcNome').hidden=!cria;$('#pcSenha').hidden=e==='email'||e==='fora';$('#pcSenha2').hidden=!cria;
-  $('#pVolta').hidden=e==='email';$('#pVai').hidden=e==='fora';
-  $('#pSenha').setAttribute('autocomplete',cria?'new-password':'current-password');
-  $('#pTit').textContent=e==='email'?'Entre na piscina':e==='entrar'?'Bem-vindo de volta':e==='fora'?'Ainda sem convite':'Primeira entrada';
+  pEst=e;pErro('');const cria=e==='criar'||e==='dono',nova=e==='renovar',semCampo=e==='email'||e==='fora'||e==='esqueci';
+  $('#pcEmail').hidden=e!=='email';$('#pcNome').hidden=!cria;$('#pcSenha').hidden=semCampo;$('#pcSenha2').hidden=!(cria||nova);
+  $('#pVolta').hidden=e==='email';$('#pVai').hidden=e==='fora'||e==='esqueci';$('#pEsqueci').hidden=e!=='entrar';
+  $('#pSenha').setAttribute('autocomplete',cria||nova?'new-password':'current-password');
+  $('#pTit').textContent=e==='email'?'Entre na piscina':e==='entrar'?'Bem-vindo de volta':e==='fora'?'Ainda sem convite':nova?'Senha nova':e==='esqueci'?'Esqueceu a senha?':'Primeira entrada';
   $('#pMsg').textContent=e==='email'?'Só entra quem foi convidado. Coloque o e-mail que você mandou para o Thiago.'
     :e==='entrar'?pMail+' · digite a sua senha.'
     :e==='fora'?'O e-mail '+pMail+' ainda não está na lista. Mande esse e-mail para o Thiago e peça o convite.'
+    :nova?'O Thiago liberou uma senha nova para '+pMail+'. Crie a sua senha (6 caracteres ou mais).'
+    :e==='esqueci'?'Sem problema. Peça ao Thiago para liberar uma senha nova para '+pMail+'. Depois é só voltar aqui e colocar o e-mail de novo.'
     :e==='dono'?'Você é o primeiro a entrar: esta conta vira a do dono do jogo, que convida os outros. Escolha o nome e crie a senha (6 caracteres ou mais).'
     :'Seu convite está valendo. Escolha como quer aparecer na raia e crie a sua senha (6 caracteres ou mais).';
-  $('#pVai').textContent=e==='email'?'Continuar':e==='entrar'?'Entrar':'Criar senha e entrar';
-  const foco=e==='email'?'#pEmail':e==='entrar'?'#pSenha':cria?'#pNome':null;
+  $('#pVai').textContent=e==='email'?'Continuar':e==='entrar'?'Entrar':nova?'Guardar senha e entrar':'Criar senha e entrar';
+  const foco=e==='email'?'#pEmail':e==='entrar'||nova?'#pSenha':cria?'#pNome':null;
   if(foco&&ALTA)setTimeout(()=>{try{$(foco).focus()}catch(x){}},60);
 }
 function portaAbre(msg){
@@ -2652,14 +2900,14 @@ async function portaVai(ev){
     if(pEst==='email'){
       const m=$('#pEmail').value.trim().toLowerCase();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m))return pErro('Confira o e-mail.');
       ocupa(true);pMail=m;const r=await rpc('raia_estado',{p_email:m});
-      portaPasso(r==='dono'||r==='criar'||r==='entrar'?r:'fora');
+      portaPasso(r==='dono'||r==='criar'||r==='entrar'||r==='renovar'?r:'fora');
     }else if(pEst==='entrar'){
       const s=$('#pSenha').value;if(!s)return pErro('Digite a senha.');
       ocupa(true);const r=await rpc('raia_entrar',{p_email:pMail,p_senha:s});
-      if(r&&r.token)siteEntra(r);else pErro(r&&r.erro==='trava'?'Muitas tentativas. Espere 5 minutos e tente de novo.':'Senha errada.');
-    }else if(pEst==='criar'||pEst==='dono'){
-      const n=limpaNome($('#pNome').value),s=$('#pSenha').value,s2=$('#pSenha2').value;
-      if(!n)return pErro('Escolha um nome.');
+      if(r&&r.token)siteEntra(r);else if(r&&r.erro==='renovar')portaPasso('renovar');else pErro(r&&r.erro==='trava'?'Muitas tentativas. Espere 5 minutos e tente de novo.':'Senha errada.');
+    }else if(pEst==='criar'||pEst==='dono'||pEst==='renovar'){
+      const n=pEst==='renovar'?null:limpaNome($('#pNome').value),s=$('#pSenha').value,s2=$('#pSenha2').value;
+      if(n==='')return pErro('Escolha um nome.');
       if(s.length<6)return pErro('A senha precisa ter 6 caracteres ou mais.');
       if(s!==s2)return pErro('As duas senhas não estão iguais.');
       ocupa(true);const r=await rpc('raia_registrar',{p_email:pMail,p_senha:s,p_nome:n});
@@ -2674,7 +2922,7 @@ function siteEntrou(p){
   Object.assign(EU,{id:String(p.id||''),email:String(p.email||''),nome:limpaNome(p.nome)||'Atleta',foto:fotoBoa(p.foto),fv:p.fv|0,dono:!!p.dono,sala:String(p.sala||'')});
   SALA.nome=EU.nome;$('#pSenha').value=$('#pSenha2').value='';
   document.documentElement.classList.remove('fora');$('#porta').hidden=true;
-  pintaPerfil();siteLocal();praMenu();
+  pintaPerfil();pintaLoc();siteLocal();praMenu();
   $('#donoBox').hidden=!EU.dono;
   if(!SFAKE){if(EU.dono)cvCarrega();siteRecordes()}
 }
@@ -2694,13 +2942,21 @@ function pintaPerfil(){
   $('#pfPega').textContent=EU.foto?'Trocar foto':'Colocar foto';$('#pfTira').hidden=!EU.foto;
   $('#pfQuem').textContent=EU.dono?'Dono do jogo · raia 4':'Atleta convidado';
 }
-/* fora da sala: o jogador logado treina na própria raia (o dono na 4, os outros na 5) */
+/* fora da sala: o jogador logado treina na própria raia (o dono na 4, os outros na 5) e pode chamar até três pessoas para o mesmo teclado */
 function siteLocal(){
   if(SALA.on)return;
   Object.keys(FOTOSITE).forEach(k=>delete FOTOSITE[k]);
-  const i=EU.dono?HT:HL;if(EU.foto)FOTOSITE[i]=EU.foto;
-  if(!EU.dono)EXTRA[HL].nome=EU.nome||'Atleta';
+  const L=LOCAIS();if(EU.foto)FOTOSITE[L[0]]=EU.foto;
+  L.forEach((i,k)=>{if(EXTRA[i])EXTRA[i].nome=k?LOCN[k]:(EU.nome||'Atleta')});
   aplicaModo();if(S.fase==='menu'){monta();teclas()}fotosNaTela();
+}
+const salvaLoc=()=>guarda.poe('ntp-loc',JSON.stringify({n:S.nloc||1,nomes:LOCN}));
+function pintaLoc(){
+  const n=S.nloc||1,K=EU.dono?['','setas ← →','J e L','F e H']:['','J e L','F e H','A e D'],C=$('#locNomes');C.innerHTML='';
+  $$('#segLoc button').forEach(b=>b.setAttribute('aria-pressed',String(+b.dataset.v===n)));
+  for(let k=1;k<n;k++){const l=document.createElement('label');l.className='rmrow';l.innerHTML='<span></span><input maxlength="12" autocomplete="off" spellcheck="false"><small></small>';
+    l.querySelector('span').textContent='Jogador '+(k+1);l.querySelector('small').textContent=K[k];const c=l.querySelector('input');c.value=LOCN[k];
+    c.addEventListener('input',()=>{LOCN[k]=limpaNome(c.value)||('Jogador '+(k+1));salvaLoc();clearTimeout(tPfNome);tPfNome=setTimeout(()=>{siteLocal();praMenu()},400)});C.appendChild(l)}
 }
 function siteMudou(){pintaPerfil();if(SALA.on){salaAss='';salaPublica(true)}else siteLocal()}
 function pfArquivo(f){
@@ -2726,7 +2982,12 @@ function cvPinta(l){
   const U=$('#cvLista');U.innerHTML='';
   (l||[]).forEach(c=>{const li=document.createElement('li'),eu=c.email===EU.email;
     li.innerHTML='<span></span><em></em>';li.querySelector('span').textContent=c.email;
-    li.querySelector('em').textContent=eu?'você, dono':c.entrou?'já entrou':'ainda não entrou';
+    li.querySelector('em').textContent=eu?'você, dono':c.renovar?'vai criar senha nova':c.entrou?'já entrou':'ainda não entrou';
+    if(!eu&&c.entrou&&!c.renovar){const n=document.createElement('button');n.type='button';n.className='mini';n.textContent='Senha nova';   // esqueceu a senha: o dono libera e a pessoa cria outra na próxima entrada
+      n.addEventListener('click',async()=>{
+        if(!n.dataset.c){n.dataset.c='1';n.textContent='Liberar mesmo?';setTimeout(()=>{n.dataset.c='';n.textContent='Senha nova'},3000);return}
+        try{const r=await rpc('raia_nova_senha',{p_token:EU.token,p_email:c.email});if(r&&r.lista)cvPinta(r.lista)}catch(e){$('#cvErro').textContent='Sem conexão com o servidor.'}});
+      li.appendChild(n)}
     if(!eu){const b=document.createElement('button');b.type='button';b.className='mini';b.textContent='Tirar';
       b.addEventListener('click',async()=>{
         if(!b.dataset.c){b.dataset.c='1';b.textContent='Tirar mesmo?';setTimeout(()=>{b.dataset.c='';b.textContent='Tirar'},3000);return}
@@ -2797,7 +3058,10 @@ function salaRede(){
 /* ---------- arranque do site: veste o menu, liga os botões e decide entre a porta e o jogo ---------- */
 function siteArranca(){
   const H=document.documentElement;H.classList.add('site');
-  $('.vs').hidden=true;$('#perfil').hidden=false;$('#segModo').parentElement.hidden=true;
+  $('.vs').hidden=true;$('#perfil').hidden=false;$('#segModo').parentElement.hidden=true;$('#optLoc').hidden=false;
+  try{const o=JSON.parse(guarda.le('ntp-loc')||'{}');if([1,2,3,4].includes(o.n))S.nloc=o.n;if(Array.isArray(o.nomes))[1,2,3].forEach(k=>{const v=limpaNome(o.nomes[k]);if(v)LOCN[k]=v})}catch(e){}
+  $$('#segLoc button').forEach(b=>b.addEventListener('click',()=>{S.nloc=+b.dataset.v;salvaLoc();pintaLoc();siteLocal();praMenu()}));
+  $('#pEsqueci').addEventListener('click',()=>portaPasso('esqueci'));
   $('#tit').innerHTML='<img alt="" src="'+LOGO+'"><span><small>Nadando com</small>Thiago Pereira</span>';
   const bo=$$('#segOnde button');bo[0].textContent='Treino';bo[1].textContent='Sala on-line · até 8';
   $('#vant').closest('label').hidden=true;S.vant=false;
@@ -2826,7 +3090,7 @@ function siteArranca(){
   $('#cvCopia').addEventListener('click',async e=>{const b=e.currentTarget;
     try{await navigator.clipboard.writeText(end);b.textContent='Copiado';setTimeout(()=>{b.textContent='Copiar endereço'},1800)}
     catch(x){const s=getSelection(),r=document.createRange();r.selectNodeContents($('#cvEnd'));s.removeAllRanges();s.addRange(r)}});
-  if(SFAKE){siteEntrou({id:'f'+Math.random().toString(36).slice(2,9),nome:'Teste',dono:location.hash.indexOf('dono')>=0,sala:'teste',fv:0});
+  if(SFAKE){const hl=location.hash.match(/loc(\d)/);if(hl)S.nloc=+hl[1];siteEntrou({id:'f'+Math.random().toString(36).slice(2,9),nome:'Teste',dono:location.hash.indexOf('dono')>=0,sala:'teste',fv:0});
     if(location.hash.indexOf('porta')>=0)portaAbre();return}
   if(!window.supabase||!window.supabase.createClient){portaAbre('Sem conexão com o servidor. Confira a internet e recarregue a página.');$('#pVai').disabled=true;return}
   SB=window.supabase.createClient(SITECFG.url,SITECFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false},realtime:{params:{eventsPerSecond:20}}});
@@ -2854,7 +3118,8 @@ if(location.hash.indexOf('jet')>=0)S.prova='jet';
 const salva=()=>guarda.poe('raia-opts',JSON.stringify({prova:S.prova,nado:S.nado,narra:S.narra,oficial:S.oficial,nomes:[EXTRA[2].nome,EXTRA[5].nome],modo:S.modo,nivel:S.nivel,vant:S.vant,som:S.som,vovo:S.vovo,vovoNome:VOVO.nome}));
 function teclas(){
   const j=S.prova==='jet';
-  if(SITE){$('#teclas').textContent=j?'No teclado valem as setas ← → ou A e D.':'No teclado valem as setas ← →, A e D ou a barra de espaço.';return}
+  if(SITE){const L=SALA.on?[]:LOCAIS(),K={3:'A e D',4:'as setas ← →',2:'J e L',5:'F e H',1:'A e D'};
+    $('#teclas').textContent=L.length>1?'No teclado: '+L.map(i=>QUEM[i].nome+' com '+K[i]).join(', ')+'.':j?'No teclado valem as setas ← → ou A e D.':'No teclado valem as setas ← →, A e D ou a barra de espaço.';return}
   const nh=JOG.filter(ehHumano).length;
   $('#teclas').textContent=nh>2?'No teclado: Thiago com A e D, Luca com as setas ← →, '+EXTRA[2].nome+' com J e L'+(nh>3?', '+EXTRA[5].nome+' com F e H.':'.')
     :nh===2?(j?'No teclado, Thiago troca de faixa com A e D e Luca com as setas ← →.':'No teclado, Thiago joga com A e D e Luca com as setas ← →.')
@@ -2947,7 +3212,7 @@ function quadro(agora){
   if(S.fase!=='menu')passo(dj);
   salaTic(dt);
   S.nad.forEach(n=>posa(n,dt));
-  moveGotas(dt);if(S.prova==='jet')marTic(dt,TT);else arenaTic(dt,TT);vovoTic();filma(dt,TT);
+  moveGotas(dt);moveLuzes(dt);if(S.prova==='jet')marTic(dt,TT);else arenaTic(dt,TT);vovoTic();filma(dt,TT);
   const f=S.fase;if(f==='marcas'||f==='prova'||f==='chegada'){pinta();pintaRank()}
   if(bigT>0){bigT-=dt;if(bigT<=0)$('#big').classList.remove('show')}
   desenha();
@@ -2963,6 +3228,12 @@ if(DEMO){
   if(S.fase!=='fim')pinta();
   setTimeout(()=>{document.documentElement.dataset.grito=VOVO.buf[1]?VOVO.buf[1].map(b=>b.duration.toFixed(2)).join(' '):'sem'},1200);
   ajusta();for(let k=0;k<120;k++)filma(.05,0);     // câmera já no lugar
+  pops.forEach(p=>{p.v=0;p.s.visible=false});      // as palavras que saltaram durante o salto de tempo não ficam penduradas
+  if(location.hash.indexOf('fogo')>=0){            // conferência dos fogos e dos chafarizes: solta tudo de uma vez e anda meio segundo
+    showFila.length=0;chafs.length=0;for(let k=0;k<NL;k++)lVida[k]=0;
+    const pd=S.cerim>=0;for(let k=0;k<7;k++)fogo(pd?lerp(4,21,Math.random()):lerp(-5,9,Math.random()),3.3+Math.random()*2.3,pd?lerp(-20,-15,Math.random()):lerp(-16,-10,Math.random()),CORF[k%CORF.length],110,5);
+    if(pd)[-4.7,-3.4,3.4,4.7].forEach(d=>chafariz(PODX+d,PODZ-.35,9,CORF[1]));else [1.2,5.8,10.4,14.6,19.2,23.8].forEach(x=>chafariz(x,-(W+.75),9,CORF[1]));
+    for(let k=0;k<34;k++)moveLuzes(1/60);luzPara=true}
 }
 if(SALATESTE)setInterval(()=>quadro(performance.now()),16);else requestAnimationFrame(quadro);   // conferência da sala: anda por temporizador
 
@@ -2981,6 +3252,7 @@ if(ALTA){
   });
   L(cena.background);L(cena.fog.color);
   linhaRM.material.color.multiplyScalar(2.2);linhaRMj.material.color.multiplyScalar(2.2);
+  POSLIN.forEach(f=>f());
 }
 $('#app').classList.toggle('alta',ALTA);
 

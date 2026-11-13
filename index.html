@@ -291,6 +291,11 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
 @media (prefers-reduced-motion:reduce){.bolhas{display:none}.turma img{animation:none}}
 .incentivo{font-weight:600;color:var(--foam);margin-top:-6px}
 .incentivo:empty{display:none}
+/* ===== versão 15: "Estou pronto" na sala ===== */
+.vaga.ok{box-shadow:0 0 0 2px #5FD38D inset}
+.vaga.ok small{color:#5FD38D}
+.vaga.meu.ok small{color:var(--navy)}
+.go.pronto{background:#5FD38D;box-shadow:0 12px 30px -10px #5FD38D}
 </style>
 </head>
 <body>
@@ -337,7 +342,7 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
           <p class="como" id="salaMsg">Abrindo a sala…</p>
           <div class="vagas" id="vagas"></div>
           <label class="rmrow" id="salaNomeRow" hidden>Seu nome <input id="salaNome" maxlength="12" autocomplete="off" spellcheck="false"></label>
-          <p class="como" id="salaAjuda">Cada pessoa abre esta página no seu aparelho, escolhe “Cada um no seu” e toca numa raia livre. Quem entrou primeiro escolhe a prova e dá a largada.</p>
+          <p class="como" id="salaAjuda">Cada pessoa abre esta página no seu aparelho, escolhe “Cada um no seu”, toca numa raia livre e depois em “Estou pronto”. Quando todos estiverem prontos, a prova começa sozinha em 3 segundos. Quem entrou primeiro escolhe a prova.</p>
         </div>
         <div class="opt" id="optLoc" hidden><span>Quem joga neste aparelho</span>
           <div class="seg" id="segLoc"><button data-v="1">Só eu</button><button data-v="2">2 jogadores</button><button data-v="3">3</button><button data-v="4">4</button></div>
@@ -546,7 +551,7 @@ const PV=()=>S.prova==='jet'?'jet':S.nado==='medley'?'nado':'nado-'+S.nado;   //
 /* quem joga: de uma a quatro pessoas, nas raias do balizamento oficial (4, 5, 3 e 6) */
 const JOG=SITE?[3,4,2,5,1,6,0,7]:[3,4,2,5],RAIAEXT=['um','dois','três','quatro','cinco','seis','sete','oito'];
 /* sala entre aparelhos: quando ligada, joga quem ocupou uma raia, de qualquer aparelho */
-const SALA={on:false,sala:null,eu:'',meu:-1,host:false,ocup:{},rodada:0,nome:'',msg:'',rodou:0,resRod:0};
+const SALA={on:false,sala:null,eu:'',meu:-1,host:false,ocup:{},rodada:0,nome:'',msg:'',rodou:0,resRod:0,pronto:false,conta:0};
 /* no site, fora da sala: quem está logado e até três convidados no mesmo teclado. O dono nada na raia 4; os outros começam pela 5 */
 const LOCAIS=()=>(EU.dono?[3,4,2,5]:[4,2,5,1]).slice(0,clamp(S.nloc||1,1,S.prova==='jet'&&!EU.dono?3:4));
 const ehHumano=i=>SALA.on?!!SALA.ocup[i]:SITE?LOCAIS().includes(i):i===HT?S.modo!=='p1':i===HL?S.modo!=='p0':i===2?(S.modo==='tres'||S.modo==='quatro'):i===5?S.modo==='quatro':false;
@@ -2838,7 +2843,7 @@ function salaCai(){SALA.sala=null;hostPar=null;SALA.ocup={};SALA.host=false;if(S
 function salaDesliga(){const s=SALA.sala;SALA.sala=null;hostPar=null;SALA.ocup={};SALA.meu=-1;SALA.host=false;salaAss='';if(s&&s.leave)try{s.leave().catch(()=>{})}catch(e){}}
 function salaPublica(ja){
   const s=SALA.sala;if(!s)return;const ag=performance.now();if(!ja&&ag-salaT<80)return;salaT=ag;
-  const p={v:1,uid:EU.id,fv:EU.fv,dn:EU.dono?1:0,slot:SALA.meu,nome:SALA.nome||'',host:SALA.host,rod:SALA.rodada,fase:S.fase,n:null,cfg:null,rel:null,tGo:null,ti:null,pr:null,bots:null,res:null};
+  const p={v:1,uid:EU.id,fv:EU.fv,dn:EU.dono?1:0,ok:SALA.pronto&&SALA.meu>=0?1:0,slot:SALA.meu,nome:SALA.nome||'',host:SALA.host,rod:SALA.rodada,fase:S.fase,n:null,cfg:null,rel:null,tGo:null,ti:null,pr:null,bots:null,res:null};
   const eu=SALA.meu>=0&&S.fase!=='menu'?S.nad.find(n=>n.i===SALA.meu):null;
   if(eu)p.n=[r2(eu.x),eu.dir,eu.perna,r2(eu.v),estN(eu.estado),r2(eu.salto),r2(eu.tFim),eu.dsq?1:0,r2(eu.rt),eu.turboT>0?1:0,r2(eu.z)];
   if(SALA.host){
@@ -2873,19 +2878,23 @@ function segue(n,dt){
 function deFora(n){return !!n.remoto||(SALA.on&&!SALA.host&&!n.humano&&!!hostPar)}   // quem este aparelho não simula
 /* aparelho convidado entra na prova que o anfitrião largou, com a mesma linha do tempo */
 function salaComeca(h,par){
+  SALA.pronto=false;SALA.conta=0;
   const c=h.cfg||[];if(c[0])S.prova=c[0];if(NADOS[c[1]])S.nado=c[1];if(c[2]!=null)S.nivel=c[2];S.oficial=!!c[3];
   aplicaProva();comeca();
   S.ti=h.ti||0;S.tGo=h.tGo;if(h.pr&&S.pr){S.pr.ap=h.pr[0];S.pr.lg=h.pr[1];S.pr.lg2=h.pr[2];S.pr.tym=h.pr[3]}
   S.t=Math.max(0,h.rel+(Date.now()-par.updatedAt)/1000);SALA.rodou=1;if(SALATESTE)console.log('SALA '+SALA.eu+' entrou na prova rod='+SALA.rodada+' t='+S.t.toFixed(2)+' tGo='+S.tGo);
 }
+/* quem está pronto: cada jogador toca em "Estou pronto"; quando todos estão, a prova começa sozinha */
+const prontoDe=i=>{const p=SALA.ocup[i];return p?(p.sameTab?SALA.pronto:!!p.presence.ok):false};
 function pintaVagas(){
   const v=$('#vagas');if(!v)return;v.innerHTML='';
   JOG.filter(i=>S.prova!=='jet'||JET.includes(i)).forEach(i=>{const p=SALA.ocup[i],meu=p&&p.sameTab,casa=SITE&&i===HT,fecha=casa&&!EU.dono;   // no site a raia 4 é só do dono
     const nome=i===HT?'Thiago':i===HL&&!SITE?'Luca':(p&&limpaNome(p.presence.nome))||(SITE?'Raia livre':'Convidado '+(i===2?1:2));
     const b=document.createElement('button');b.className='vaga'+(meu?' meu':p||fecha?' cheia':'');b.style.setProperty('--cor',(EXTRA[i]||QUEM[i]).cor);b.dataset.i=i;
     b.innerHTML='<b></b><small></small>';b.querySelector('b').textContent=nome;
-    b.querySelector('small').textContent='raia '+(i+1)+' · '+(meu?'é você':p?(casa?'ele está na água':'ocupada'):casa?(EU.dono?'a sua raia':'o computador nada por ele'):'livre');
-    b.addEventListener('click',()=>{if((p&&!meu)||fecha)return;audio();vovoDestrava();SALA.meu=meu?-1:i;salaPublica(true)});
+    b.querySelector('small').textContent='raia '+(i+1)+' · '+(p?(prontoDe(i)?'pronto ✓':meu?'é você · falta o pronto':'esperando o pronto'):casa?(EU.dono?'a sua raia':'o computador nada por ele'):'livre');
+    if(p&&prontoDe(i))b.classList.add('ok');
+    b.addEventListener('click',()=>{if((p&&!meu)||fecha)return;audio();vovoDestrava();SALA.meu=meu?-1:i;SALA.pronto=false;salaPublica(true)});
     v.appendChild(b)});
   $('#salaNomeRow').hidden=SITE||!(SALA.meu===2||SALA.meu===5);
 }
@@ -2904,17 +2913,23 @@ function salaTic(dt){
   if(!hostPar&&eu&&Date.now()-salaEntrou>(SITE&&!SALATESTE?3200:1800)&&ps[0]===eu)SALA.host=true;          // ninguém manda ainda: o primeiro da fila assume
   if(SALA.host&&hostPar&&!hostPar.sameTab&&!(SITE&&EU.dono&&!hostPar.presence.dn))SALA.host=false;
   /* mudou quem ocupa o quê: refaz os personagens das raias 3 e 6 e a lista de vagas */
-  const ass=JOG.map(i=>oc[i]?oc[i].peer+':'+(oc[i].presence.nome||'')+':'+(oc[i].presence.fv|0):'-').join('|')+'|'+SALA.meu+'|'+SALA.host+'|'+ps.length+'|'+S.prova;
+  const ass=JOG.map(i=>oc[i]?oc[i].peer+':'+(oc[i].presence.nome||'')+':'+(oc[i].presence.fv|0)+':'+(prontoDe(i)?1:0):'-').join('|')+'|'+SALA.meu+'|'+SALA.host+'|'+ps.length+'|'+S.prova;
   if(ass!==salaAss){salaAss=ass;if(SALATESTE)console.log('SALA '+SALA.eu+' ['+ass+'] fase='+S.fase+' rod='+SALA.rodada);
     HUMS.forEach(i=>{if(oc[i])EXTRA[i].nome=limpaNome(oc[i].presence.nome)||(SITE?'Convidado':'Convidado '+(i===2?1:2))});
     if(SITE)siteFotos(oc);
     aplicaModo();if(S.fase==='menu'){monta();teclas()}pintaVagas();
-    const nj=JOG.filter(i=>oc[i]).length;
-    salaMsg('Sala aberta · '+ps.length+(ps.length===1?' aparelho':' aparelhos')+' · '+nj+(nj===1?' jogador':' jogadores')+' · '+(SALA.host?'você dá a largada':hostPar?'o anfitrião dá a largada':'aguardando'));
+    const nj=JOG.filter(i=>oc[i]).length,np=JOG.filter(i=>oc[i]&&prontoDe(i)).length;
+    salaMsg('Sala aberta · '+ps.length+(ps.length===1?' aparelho':' aparelhos')+' · '+nj+(nj===1?' jogador':' jogadores')+' · '+np+' de '+nj+' prontos'+(SALA.host?' · você escolhe a prova':''));
   }
-  const dono=SALA.host&&SALA.meu>=0,bg=$('#btGo');
-  if(bg){bg.disabled=!dono;bg.textContent=SALA.meu<0?'Escolha a sua raia':SALA.host?(S.prova==='jet'?'Ligar o motor':'Cair na água'):'Esperando o anfitrião'}
-  $('#btDeNovo').hidden=!SALA.host;
+  /* botões: na sala, "Cair na água" e "Revanche" viram "Estou pronto"; com todos prontos, contagem de 3 segundos e o anfitrião larga */
+  const nj=JOG.filter(i=>oc[i]).length,np=JOG.filter(i=>oc[i]&&prontoDe(i)).length,todos=nj>0&&np===nj,parado=S.fase==='menu'||S.fase==='fim';
+  if(!(todos&&parado))SALA.conta=0;else if(!SALA.conta){SALA.conta=performance.now();try{SOM.bom()}catch(e){}}
+  const falta=SALA.conta?Math.max(0,3-(performance.now()-SALA.conta)/1000):0;
+  const txt=SALA.meu<0?'Escolha a sua raia':SALA.conta?'Todos prontos! Largando em '+Math.ceil(falta||.01)+'…':SALA.pronto?'Pronto ✓ · esperando os outros ('+np+' de '+nj+')':'Estou pronto';
+  [$('#btGo'),$('#btDeNovo')].forEach(b=>{if(!b)return;b.disabled=SALA.meu<0;b.textContent=txt;b.classList.toggle('pronto',SALA.pronto&&SALA.meu>=0)});
+  $('#btDeNovo').hidden=SALA.meu<0;
+  if(SALA.host&&SALA.conta&&falta<=0&&parado){SALA.conta=0;SALA.pronto=false;comeca();SALA.rodada++;SALA.rodou=1;salaPublica(true);
+    if(SALATESTE)console.log('SALA '+SALA.eu+' largou rod='+SALA.rodada+' tGo='+S.tGo.toFixed(2))}
   const h=hostPar&&!hostPar.sameTab?hostPar.presence:null;
   if(h){
     if(h.cfg&&S.fase==='menu'&&(h.cfg[0]!==S.prova||h.cfg[1]!==S.nado||h.cfg[2]!==S.nivel)){             // o menu acompanha a escolha do anfitrião
@@ -2936,15 +2951,14 @@ function salaTic(dt){
 /* conferência automática da sala de mentira: pega a vaga pedida no endereço e, se for o anfitrião, larga sozinho */
 function salaAuto(){
   const m=location.hash.match(/vaga(\d)/);if(m&&SALA.meu<0&&!SALA.ocup[+m[1]]&&Date.now()-salaEntrou>700){SALA.meu=+m[1];SALA.nome='Teste';salaPublica(true)}
-  if(SALA.host&&SALA.meu>=0&&S.fase==='menu'&&JOG.filter(i=>SALA.ocup[i]).length>=2){salaAutoT=salaAutoT||Date.now();
-    if(Date.now()-salaAutoT>1500){salaAutoT=0;comeca();SALA.rodada++;SALA.rodou=1;salaPublica(true);console.log('SALA '+SALA.eu+' largou rod='+SALA.rodada+' tGo='+S.tGo.toFixed(2))}}
+  if(SALA.meu>=0&&S.fase==='menu'&&!SALA.rodada&&!SALA.pronto&&JOG.filter(i=>SALA.ocup[i]).length>=2){salaAutoT=salaAutoT||Date.now();if(Date.now()-salaAutoT>900){salaAutoT=0;SALA.pronto=true;salaPublica(true)}}   // conferência: fica pronto quando os dois já estão na sala
   if(S.fase!==salaAuto.f){salaAuto.f=S.fase;console.log('SALA '+SALA.eu+' fase '+S.fase+' aos '+S.t.toFixed(2)+' '+S.nad.map(n=>n.nome[0]+(n.humano?(n.remoto?'r':'L'):'b')+':'+n.estado[0]+n.x.toFixed(0)+(n.tFim?'/'+n.tFim.toFixed(1):'')).join(' '))}
 }
 /* menu: escolher onde se joga */
 function aplicaOnde(){
   const on=SALA.on;$('#salaBox').hidden=!on;$('#segModo').parentElement.hidden=on;
   if(on){$('#extras').hidden=true;salaLiga()}
-  else{salaDesliga();const bg=$('#btGo');bg.disabled=false;$('#btDeNovo').hidden=false;if(SITE)siteLocal();else aplicaModo();pintaExtras();aplicaProva();praMenu()}
+  else{salaDesliga();SALA.pronto=false;SALA.conta=0;const bg=$('#btGo');bg.disabled=false;$('#btDeNovo').hidden=false;$('#btDeNovo').disabled=false;$('#btDeNovo').textContent='Revanche';$$('#btGo,#btDeNovo').forEach(b=>b.classList.remove('pronto'));if(SITE)siteLocal();else aplicaModo();pintaExtras();aplicaProva();praMenu()}
   if(SITE){$('#segModo').parentElement.hidden=true;$('#optLoc').hidden=on}
 }
 (function(){
@@ -2952,11 +2966,11 @@ function aplicaOnde(){
   bs.forEach(b=>b.addEventListener('click',()=>{const quer=b.dataset.v==='sala';if(quer===SALA.on)return;SALA.on=quer;marca();aplicaOnde()}));marca();
   const cn=$('#salaNome');SALA.nome=(guarda.le('raia-sala-nome')||'').slice(0,12);cn.value=SALA.nome;
   cn.addEventListener('input',()=>{SALA.nome=cn.value.trim().slice(0,12);guarda.poe('raia-sala-nome',SALA.nome);salaPublica(true)});
-  /* na sala, só o anfitrião com raia escolhida larga; o clique dos outros não chega no botão */
+  /* na sala o botão não larga: marca e desmarca "Estou pronto". Quem larga é a contagem, quando todos estão prontos */
   document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#btGo,#btDeNovo');
-    if(b&&SALA.on&&(!SALA.host||SALA.meu<0)){e.stopPropagation();e.preventDefault()}},true);
+    if(b&&SALA.on){e.stopPropagation();e.preventDefault();if(SALA.meu<0)return;audio();vovoDestrava();SALA.pronto=!SALA.pronto;salaAss='';salaPublica(true)}},true);
   /* a rodada só é anunciada depois que a prova começou neste aparelho; anunciada antes, os convidados viam "rodada nova, ainda no menu" e ficavam de fora */
-  $$('#btGo,#btDeNovo').forEach(b=>b.addEventListener('click',()=>{if(SALA.on&&SALA.host&&SALA.sala)setTimeout(()=>{if(S.fase!=='marcas')return;SALA.rodada++;SALA.rodou=1;salaPublica(true)},0)}));
+
   $$('#btMenu,#sair').forEach(b=>b.addEventListener('click',()=>{if(SALA.on)salaPublica(true)}));
   if(SALATESTE){SALA.on=true;marca();aplicaOnde()}
 })();
@@ -3130,7 +3144,7 @@ function salaRede(){
   const sala={
     presence(p,ja){
       meu=p;const ag=performance.now(),np=1+Object.keys(pares).length,corre=p.fase!=='menu'&&p.fase!=='fim';
-      const sig=corre?'':JSON.stringify([p.slot,p.nome,p.host,p.rod,p.fase,p.cfg,p.uid,p.fv,p.res?p.res.length:0]);
+      const sig=corre?'':JSON.stringify([p.slot,p.nome,p.host,p.rod,p.fase,p.cfg,p.uid,p.fv,p.ok,p.res?p.res.length:0]);
       const ivl=corre?Math.max(85,np*1000/46):(sig!==ultSig?180:2200);
       if(ja||oi||ag-ult>=ivl){ultSig=sig;oi=0;manda()}
       return Promise.resolve()},
@@ -3166,7 +3180,7 @@ function siteArranca(){
   const bo=$$('#segOnde button');bo[0].textContent='Treino';bo[1].textContent='Sala on-line · até 8';
   $('#vant').closest('label').hidden=true;S.vant=false;
   $('.grito[data-k="2"]').hidden=true;$('#gritoMsg').textContent='O “Vai, Thiago!” é a voz de verdade da mãe dele.';
-  $('#salaAjuda').textContent='Cada convidado entra no site com o próprio login, escolhe “Sala on-line” e toca numa raia livre. Cabem 8 na natação e 4 no jet ski. Quem entrou primeiro escolhe a prova e dá a largada. A raia 4 é a do Thiago.';
+  $('#salaAjuda').textContent='Cada convidado entra no site com o próprio login, escolhe “Sala on-line”, toca numa raia livre e depois em “Estou pronto”. Quando todos estiverem prontos, a prova começa sozinha em 3 segundos. Cabem 8 na natação e 4 no jet ski. O Thiago escolhe a prova; a raia 4 é dele.';
   $('#plogo').src=LOGO;if(typeof HEROI==='string')$('#pfoto').src=HEROI;
   $('#pform').addEventListener('submit',portaVai);
   $('#pVolta').addEventListener('click',()=>{$('#pSenha').value=$('#pSenha2').value='';portaPasso('email')});

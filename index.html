@@ -374,6 +374,8 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
           <div class="locnomes" id="locNomes"></div></div>
         <div class="opt" id="optProva"><span>Prova</span>
           <div class="seg" id="segProva"><button data-v="nado">Natação</button><button data-v="jet">Jet ski</button></div></div>
+        <div class="opt" id="optPiscina"><span>Piscina</span>
+          <div class="seg" id="segPiscina"><button data-v="25">Piscina 25 m</button><button data-v="50">Piscina 50 m</button></div></div>
         <div class="opt" id="optNado"><span>Nado · 100 m</span>
           <div class="seg" id="segNado"><button data-v="medley">Medley</button><button data-v="livre">Livre</button><button data-v="costas">Costas</button><button data-v="peito">Peito</button><button data-v="borbo">Borboleta</button></div></div>
         <div class="opt"><span>Quem joga</span>
@@ -543,7 +545,11 @@ const LOGOI="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAggAAABaCAYAAADdJa62A
 
 /* ===== a1: base, estado e rostos ===== */
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const POOL=25, LARG=16, RAIAS=[-7,-5,-3,-1,1,3,5,7], TAU=Math.PI*2, HT=3, HL=4;
+/* piscina: 25 m (padrão) ou 50 m, escolhida no menu e guardada nas opções; #p50 força a de 50 só para conferência.
+   Na de 50 m não existe 100 m medley: são duas piscinas e uma virada */
+const POOL=(()=>{try{if(location.hash.indexOf('p50')>=0)return 50;const o=JSON.parse(localStorage.getItem('raia-opts')||'{}');return o.piscina===50?50:25}catch(e){return 25}})();
+const NPERNAS=100/POOL,SX=x=>POOL/2+(x-12.5)*POOL/25;   // SX estica para a piscina de 50 uma posição pensada para a de 25
+const LARG=16, RAIAS=[-7,-5,-3,-1,1,3,5,7], TAU=Math.PI*2, HT=3, HL=4;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), lerp=(a,b,t)=>a+(b-a)*t;
 const ESTILOS=[
   {n:'Borboleta',tipo:'tempo',per:.72,cpu:1},
@@ -578,7 +584,7 @@ const NADOS={medley:{t:'100 m medley',fala:'medley'},livre:{e:3,t:'100 m livre',
   peito:{e:2,t:'100 m peito',fala:'peito'},borbo:{e:0,t:'100 m borboleta',fala:'borboleta'}};
 const iE=k=>S.nado==='medley'?k:NADOS[S.nado].e;                    // qual nado vale no trecho k
 const ES=n=>ESTILOS[iE(n.perna)];
-const PV=()=>S.prova==='jet'?'jet':S.nado==='medley'?'nado':'nado-'+S.nado;   // cada prova tem o seu recorde
+const PV=()=>S.prova==='jet'?'jet':(S.nado==='medley'?'nado':'nado-'+S.nado)+(POOL===50?'-50':'');   // cada prova tem o seu recorde
 /* quem joga: de uma a quatro pessoas, nas raias do balizamento oficial (4, 5, 3 e 6) */
 const JOG=SITE?[3,4,2,5,1,6,0,7]:[3,4,2,5],RAIAEXT=['um','dois','três','quatro','cinco','seis','sete','oito'];
 /* sala entre aparelhos: quando ligada, joga quem ocupou uma raia, de qualquer aparelho */
@@ -936,8 +942,8 @@ function narra(txt,prio,voz){
 function narraVirada(n){
   if(!n.casa)return;S.narV=S.narV||{};if(S.narV[n.perna])return;S.narV[n.perna]=1;
   const d=distancia(n),p=1+S.nad.filter(o=>distancia(o)>d+.01).length;
-  const resto=S.nado==='medley'?' Agora, '+NADO[n.perna]+'.':[' Faltam setenta e cinco metros.',' Metade da prova!',' Últimos vinte e cinco metros!'][n.perna-1]||'';
-  narra(n.nome+(p===1?' vira na frente!':' vira em '+ORD[p-1]+'.')+resto,2,(S.nado==='medley'?'vir_':'met_')+n.perna);
+  const resto=S.nado==='medley'?' Agora, '+NADO[n.perna]+'.':POOL===50?' Metade da prova!':[' Faltam setenta e cinco metros.',' Metade da prova!',' Últimos vinte e cinco metros!'][n.perna-1]||'';
+  narra(n.nome+(p===1?' vira na frente!':' vira em '+ORD[p-1]+'.')+resto,2,S.nado==='medley'?'vir_'+n.perna:'met_'+(POOL===50?2:n.perna));
 }
 /* pai contra filho: avisa quando um passa o outro (no máximo uma vez a cada seis segundos) */
 /* no site não tem pai e filho: avisa quando muda quem está na frente entre os jogadores */
@@ -991,8 +997,8 @@ const sol=new THREE.DirectionalLight(0xffffff,ALTA?1.9:.9);sol.position.set(8,18
 if(ALTA){
   R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
   sol.position.set(POOL/2+9,30,17);sol.target.position.set(POOL/2,0,-3);cena.add(sol.target);sol.castShadow=true;
-  const sc=sol.shadow.camera;sc.left=-30;sc.right=30;sc.top=27;sc.bottom=-27;sc.near=4;sc.far=90;
-  sol.shadow.mapSize.set(4096,4096);sol.shadow.bias=-.0005;sol.shadow.normalBias=.035;
+  const sc=sol.shadow.camera;sc.left=-(POOL/2+17.5);sc.right=POOL/2+17.5;sc.top=27;sc.bottom=-27;sc.near=4;sc.far=90;
+  sol.shadow.mapSize.set(POOL===50?6144:4096,4096);sol.shadow.bias=-.0005;sol.shadow.normalBias=.035;
   const l1=new THREE.DirectionalLight(0x3ec6e0,.7);l1.position.set(-16,8,-12);cena.add(l1);      // contorno frio, de trás
   const l2=new THREE.DirectionalLight(0xffc83d,.45);l2.position.set(POOL+16,7,-12);cena.add(l2);  // contorno quente
   const l3=new THREE.DirectionalLight(0x48d6f0,.35);l3.position.set(POOL/2,-10,2);cena.add(l3);   // a piscina ilumina por baixo
@@ -1150,18 +1156,18 @@ const fundoMat=new THREE.ShaderMaterial({
     vec3 cor=mix(vec3(.40,.78,.93),vec3(.33,.71,.90),hsh(floor(t)));
     cor=mix(cor,vec3(.20,.50,.70),rej*.6);
     float lz=abs(mod(wp.z+8.,2.)-1.),linha=0.;
-    if(chao){linha=(1.-smoothstep(.115,.14,lz))*step(2.,wp.x)*step(wp.x,23.);
-      linha=max(linha,(1.-smoothstep(.115,.14,min(abs(wp.x-2.),abs(wp.x-23.))))*step(lz,.5));}
+    if(chao){linha=(1.-smoothstep(.115,.14,lz))*step(2.,wp.x)*step(wp.x,${(POOL-2).toFixed(1)});
+      linha=max(linha,(1.-smoothstep(.115,.14,min(abs(wp.x-2.),abs(wp.x-${(POOL-2).toFixed(1)}))))*step(lz,.5));}
     else if(ponta){linha=(1.-smoothstep(.115,.14,lz))*step(-1.35,wp.y)*step(wp.y,-.25);
       linha=max(linha,(1.-smoothstep(.115,.14,abs(wp.y+.8)))*step(lz,.5));}
     cor=mix(cor,vec3(.03,.08,.16),linha);
     float ca=caus((chao?wp.xz:q)*.21,uT*.55+23.);
     cor+=vec3(.75,.95,.90)*ca*(chao?.85:.4);
     if(chao){float s=0.;
-      for(int i=0;i<8;i++){vec2 d=wp.xz-vec2(uN[i].x+12.1,-uN[i].y-.75);s=max(s,uS[i]*smoothstep(1.3,.2,length(d*vec2(.72,2.3))));}
+      for(int i=0;i<8;i++){vec2 d=wp.xz-vec2(uN[i].x+${(POOL/2-.4).toFixed(2)},-uN[i].y-.75);s=max(s,uS[i]*smoothstep(1.3,.2,length(d*vec2(.72,2.3))));}
       cor*=1.-.45*s;}
     cor*=mix(1.,.74,chao?1.:clamp(-wp.y/2.,0.,1.));
-    cor*=.72+.28*smoothstep(0.,1.5,min(min(wp.x,25.-wp.x),min(wp.z+8.,8.-wp.z))+(chao?0.:1.5));
+    cor*=.72+.28*smoothstep(0.,1.5,min(min(wp.x,${POOL.toFixed(1)}-wp.x),min(wp.z+8.,8.-wp.z))+(chao?0.:1.5));
     if(uSub>.5)cor=mix(cor,vec3(.13,.55,.72),1.-exp(-length(uCam-wp)*.085));
     gl_FragColor=vec4(cor,1.);`+FIM_GL+'}'
 });
@@ -1243,7 +1249,7 @@ const texPiso=texCanvas(256,256,(g,w)=>{g.fillStyle='#ffffff';g.fillRect(0,0,w,w
 const mDeck=matS(0x0a2a42,.28),mBorda=matS(0xeef7fa,.35),mEscuro=mat(0x071d30),mCinza=matS(0xc9d6dd,.45),mAco=matS(0x9fb2bd,.3,{metalness:.7});
 const deque=(w,d,x,z)=>{const m=mDeck.clone();m.map=texPiso.clone();m.map.repeat.set(w/1.8,d/1.8);m.map.needsUpdate=true;
   const o=caixa(w,.6,d,m,x,YD-.3,z);o.castShadow=false;return o};
-deque(47,9,POOL/2,-(W+4.5));deque(47,15,POOL/2,W+7.5);deque(11,LARG,-5.5,0);deque(11,LARG,POOL+5.5,0);
+deque(POOL+22,9,POOL/2,-(W+4.5));deque(POOL+22,15,POOL/2,W+7.5);deque(11,LARG,-5.5,0);deque(11,LARG,POOL+5.5,0);
 (function(){                                              // canaleta escura e pedra da borda em volta do tanque
   const mGr=matS(0x0a2233,.5),b=(w,d,x,z,m,y)=>{const o=caixa(w,.03,d,m,x,y,z);o.castShadow=false;return o};
   b(POOL+1,.36,POOL/2,-(W+.32),mGr,YD+.005);b(POOL+1,.36,POOL/2,W+.32,mGr,YD+.005);b(.36,LARG,-.32,0,mGr,YD+.005);b(.36,LARG,POOL+.32,0,mGr,YD+.005);
@@ -1252,12 +1258,12 @@ deque(47,9,POOL/2,-(W+4.5));deque(47,15,POOL/2,W+7.5);deque(11,LARG,-5.5,0);dequ
 
 /* ---------- raias: boias de verdade, uma a uma, nas cores da regra (verde, azul, amarela no meio, vermelho nos 5 m) ---------- */
 (function(){
-  const N=200,g=new THREE.CylinderGeometry(.078,.078,.108,10);g.rotateZ(Math.PI/2);
+  const N=8*POOL,g=new THREE.CylinderGeometry(.078,.078,.108,10);g.rotateZ(Math.PI/2);
   const im=new THREE.InstancedMesh(g,matS(0xffffff,.32),N*7),m4=new THREE.Matrix4(),c=new THREE.Color();
   const cores=[0x27b36a,0x2a78de,0x2a78de,0xffcf33,0x2a78de,0x2a78de,0x27b36a];let k=0;
   for(let r=0;r<7;r++)for(let j=0;j<N;j++){const x=(j+.5)*POOL/N;
     m4.makeTranslation(x,.012,-6+2*r);im.setMatrixAt(k,m4);
-    c.setHex(x<5||x>POOL-5?0xe8382f:cores[r]);if(j%2)c.multiplyScalar(.82);if(Math.abs(x-15)<.07||Math.abs(x-10)<.07)c.setHex(0xf2fafc);
+    c.setHex(x<5||x>POOL-5?0xe8382f:cores[r]);if(j%2)c.multiplyScalar(.82);if([10,15,POOL-15,POOL-10].some(m=>Math.abs(x-m)<.07))c.setHex(0xf2fafc);
     im.setColorAt(k++,c)}
   im.receiveShadow=ALTA;grupo.add(im);
 })();
@@ -1306,17 +1312,17 @@ const NF=13,NE=9,RUN=1.1,RISE=.6,Y0=1.2,YE0=2.5,XE=-7.5,XD=POOL+7.5;
 
 /* ---------- concreto: degraus, paredes e teto ---------- */
 const mArq=[mat(0x0b2a44),mat(0x0e3454)],mParede=mat(0x030c16),mTeto=mat(0x040f1a);
-for(let k=0;k<NF;k++){const h=Y0+k*RISE-YD;caixa(51,h,RUN,mArq[k%2],POOL/2,YD+h/2,ZA-RUN/2-k*RUN).castShadow=false}
+for(let k=0;k<NF;k++){const h=Y0+k*RISE-YD;caixa(POOL+26,h,RUN,mArq[k%2],POOL/2,YD+h/2,ZA-RUN/2-k*RUN).castShadow=false}
 for(let k=0;k<NE;k++){const h=YE0+k*RISE-YD;
   caixa(RUN,h,28,mArq[k%2],XE-RUN/2-k*RUN,YD+h/2,-1).castShadow=false;caixa(RUN,h,28,mArq[k%2],XD+RUN/2+k*RUN,YD+h/2,-1).castShadow=false}
-[[POOL/2,13,ZA-NF*RUN-.6,72,26,.5],[XE-NE*RUN-.6,13,-3,.5,26,58],[XD+NE*RUN+.6,13,-3,.5,26,58],[POOL/2,13,26,72,26,.5]]
+[[POOL/2,13,ZA-NF*RUN-.6,POOL+47,26,.5],[XE-NE*RUN-.6,13,-3,.5,26,58],[XD+NE*RUN+.6,13,-3,.5,26,58],[POOL/2,13,26,POOL+47,26,.5]]
   .forEach(([x,y,z,w,h,d])=>{const o=caixa(w,h,d,mParede,x,y,z);o.castShadow=false});
 [[-15.6,7,-23],[POOL+15.6,7,-23]].forEach(([x,y,z])=>caixa(5.4,14,14.4,mArq[0],x,y,z).castShadow=false);   // torres dos cantos
-const teto=plano(74,60,mTeto,POOL/2,25,-3);teto.rotation.x=Math.PI/2;
+const teto=plano(POOL+49,60,mTeto,POOL/2,25,-3);teto.rotation.x=Math.PI/2;
 const mTrelica=matS(0x16293a,.5,{metalness:.6});
-[-9,1.5,12.5,23.5,34].forEach(x=>caixa(.5,.9,58,mTrelica,x,23.6,-3).castShadow=false);
-[-6,6].forEach(z=>{caixa(60,.35,.35,mTrelica,POOL/2,22.3,z).castShadow=false;caixa(60,.2,.2,mTrelica,POOL/2,23.3,z).castShadow=false;
-  for(let k=0;k<24;k++){const d=caixa(.12,1.1,.12,mTrelica,-16+k*2.5,22.8,z);d.rotation.z=k%2?.5:-.5;d.castShadow=false}});
+[-9,1.5,12.5,23.5,34].forEach(x=>caixa(.5,.9,58,mTrelica,SX(x),23.6,-3).castShadow=false);
+[-6,6].forEach(z=>{caixa(POOL+35,.35,.35,mTrelica,POOL/2,22.3,z).castShadow=false;caixa(POOL+35,.2,.2,mTrelica,POOL/2,23.3,z).castShadow=false;
+  for(let k=0;k<Math.round(24*(POOL+35)/60);k++){const d=caixa(.12,1.1,.12,mTrelica,-16+k*2.5,22.8,z);d.rotation.z=k%2?.5:-.5;d.castShadow=false}});
 
 /* ---------- pontos de luz e brilhos ---------- */
 const texPonto=texCanvas(64,64,g=>{g.fillStyle='#fff';g.beginPath();g.arc(32,32,28,0,TAU);g.fill()});
@@ -1333,8 +1339,8 @@ const texFeixe=texCanvas(64,256,(g,w,h)=>{const r=g.createLinearGradient(0,0,0,h
   r.addColorStop(0,'rgba(210,240,255,.9)');r.addColorStop(1,'rgba(150,215,255,0)');g.fillStyle=r;
   g.beginPath();g.moveTo(w*.44,0);g.lineTo(w*.56,0);g.lineTo(w,h);g.lineTo(0,h);g.fill()});
 const feixes=[];
-[-6,6].forEach(z=>{for(let k=0;k<12;k++){const x=-5+k*3.2;caixa(2.1,.1,.8,mPainel,x,22.05,z).castShadow=false;
-  if(k%2===0&&k>1&&k<10){const f=new THREE.Sprite(new THREE.SpriteMaterial({map:texFeixe,transparent:true,opacity:.05,depthWrite:false,blending:THREE.AdditiveBlending}));
+[-6,6].forEach(z=>{const NP=POOL===50?20:12;for(let k=0;k<NP;k++){const x=-5+k*3.2;caixa(2.1,.1,.8,mPainel,x,22.05,z).castShadow=false;
+  if(k%2===0&&k>1&&k<NP-2){const f=new THREE.Sprite(new THREE.SpriteMaterial({map:texFeixe,transparent:true,opacity:.05,depthWrite:false,blending:THREE.AdditiveBlending}));
     f.scale.set(9,22,1);f.position.set(x,11,z);grupo.add(f);feixes.push(f)}}});
 const flashes=[];let nFlash=0;
 for(let i=0;i<14;i++){const f=luz(1.9,0);if(ALTA)f.material.color.setRGB(1.7,1.7,1.7);flashes.push(f)}
@@ -1345,12 +1351,12 @@ const PELE=[0xf1c9a5,0xe2a878,0xc68958,0x9b6a44,0x6f4a30];
 const sorteia=()=>{let r=Math.random();for(const [c,p] of CAMISA){if(r<p)return c;r-=p}return CAMISA[0][0]};
 const gente=[];                                        // {x,y,z,s,cor,pula,ry,u,ofi}
 (function(){
-  const rnd=()=>Math.random()-.5,passo=ALTA?.66:1.15;
+  const rnd=()=>Math.random()-.5,passo=(ALTA?.66:1.15)*(POOL===50?1.22:1);   // na arena maior a gente fica um pouco mais espalhada, para não pesar
   const fa=(x,y,z,ry,u)=>gente.push({x:x+rnd()*.2,y,z:z+rnd()*.2,s:.9+Math.random()*.25,cor:sorteia(),pula:.4+Math.random(),ry,u});
-  for(let k=0;k<NF;k++)for(let x=-12.6;x<37.9;x+=passo){
+  for(let k=0;k<NF;k++)for(let x=-12.6;x<POOL+12.9;x+=passo){
     if(((x+13)%10.2)<1.1||Math.random()<.07)continue;                       // corredores e lugares vazios
     if(k===0&&Math.abs(x-POOL/2)<1.5)continue;                              // o lugar da vovó
-    fa(x,Y0+k*RISE,ZA-.55-k*RUN,0,.27+.46*(x+12.6)/50.5)}
+    fa(x,Y0+k*RISE,ZA-.55-k*RUN,0,.27+.46*(x+12.6)/(POOL+25.5))}
   for(let k=0;k<NE;k++)for(let z=-14.6;z<12.7;z+=passo){
     if(((z+15)%9.5)<1.1||Math.random()<.07)continue;
     fa(XE-.55-k*RUN,YE0+k*RISE,z,Math.PI/2,.27*(12.7-z)/27.3);fa(XD+.55+k*RUN,YE0+k*RISE,z,-Math.PI/2,.73+.27*(z+14.6)/27.3)}
@@ -1359,7 +1365,7 @@ const gente=[];                                        // {x,y,z,s,cor,pula,ry,u
   RAIAS.forEach(z=>{of(-2.9,YD+.42,z,.95,0xF2FAFC,Math.PI/2);caixa(.5,.42,.5,mEscuro,-2.9,YD+.21,z)});
   [-6,-2,2,6].forEach(z=>of(POOL+1.7,YD,z,1.55,0xF2FAFC,-Math.PI/2));
   of(-1.4,YD,-9.2,1.6,0xF2FAFC,0);of(-1.4,YD,9.2,1.6,0x0e3454,Math.PI);
-  for(let k=0;k<9;k++)if(k<3||k>5)of(2+k*2.6,YD,-(W+3.1)-(k%2)*.5,1.0+(k%3)*.25,k%2?0x10212e:0x2b3f52,0);
+  for(let k=0;k<9;k++)if(k<3||k>5)of(SX(2+k*2.6),YD,-(W+3.1)-(k%2)*.5,1.0+(k%3)*.25,k%2?0x10212e:0x2b3f52,0);
 })();
 /* torcida viva: cada pessoa tem corpo, cabeça com rosto, cabelo e dois braços, e boa parte segura um bastão de luz.
    Tudo instanciado e animado no shader: pulam com o barulho, levantam os braços e fazem a ola em volta da arena */
@@ -1439,14 +1445,14 @@ const pintaPat=(g,w,h)=>{g.setTransform(1,0,0,1,0,0);const gr=g.createLinearGrad
       else{g.fillStyle='#F2FAFC';g.font='900 34px Montserrat,"Arial Black",Arial';g.fillText('INSTITUTO THIAGO PEREIRA',x0+w/8,h/2+2,w/4-40)}}
     else{g.strokeStyle='rgba(148,178,196,.55)';g.lineWidth=2;g.setLineDash([10,8]);g.strokeRect(x0+60,14,w/4-120,h-28);g.setLineDash([]);
       g.fillStyle='#94B2C4';g.font='700 22px Montserrat,Arial';g.fillText(k===1?'ESPAÇO DO APOIADOR':'SUA MARCA AQUI',x0+w/8,h/2+1)}}};
-const texPat=texCanvas(2048,96,pintaPat,true);texPat.repeat.set(1.5,1);
+const texPat=texCanvas(2048,96,pintaPat,true);texPat.repeat.set(POOL===50?2.8:1.5,1);
 if(LOGOIIM){LOGOIIM.onload=()=>{pintaPat(texPat.image.getContext('2d'),2048,96);texPat.needsUpdate=true};LOGOIIM.src=LOGOI}
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{pintaPat(texPat.image.getContext('2d'),2048,96);texPat.needsUpdate=true});
 const mPat=basico({map:texPat,color:corLed});
 const ledBorda=[plano(POOL+7,.8,mPat,POOL/2,YD+.45,-(W+1.5)),caixa(POOL+7.2,.95,.12,mEscuro,POOL/2,YD+.42,-(W+1.58))];
 {const p=plano(POOL+7,.8,mPat,POOL/2,YD+.45,W+1.5);p.rotation.y=Math.PI;caixa(POOL+7.2,.95,.12,mEscuro,POOL/2,YD+.42,W+1.58).castShadow=false}
-caixa(51,Y0-YD,.14,mEscuro,POOL/2,YD+(Y0-YD)/2,ZA+.07).castShadow=false;
-plano(51,.62,basico({map:ledTex2,color:corLed}),POOL/2,.78,ZA+.15);
+caixa(POOL+26,Y0-YD,.14,mEscuro,POOL/2,YD+(Y0-YD)/2,ZA+.07).castShadow=false;
+plano(POOL+26,.62,basico({map:ledTex2,color:corLed}),POOL/2,.78,ZA+.15);if(POOL===50)ledTex2.repeat.set(5.2,1);
 /* a marca: a logo do nadador entra no fundo de mídia e no telão quando termina de carregar */
 const LOGOIM=typeof LOGO==='string'?new Image():null;
 const pintaMidia=(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,SITE?'#0B4F79':'#0c3454');gr.addColorStop(1,SITE?'#061B2E':'#061a2c');g.fillStyle=gr;g.fillRect(0,0,w,h);
@@ -1475,13 +1481,13 @@ const texBR=texCanvas(128,90,g=>{g.fillStyle='#1E9B4B';g.fillRect(0,0,128,90);
   g.fillStyle='#FFD43B';g.beginPath();g.moveTo(64,8);g.lineTo(118,45);g.lineTo(64,82);g.lineTo(10,45);g.fill();
   g.fillStyle='#1B3F9C';g.beginPath();g.arc(64,45,19,0,TAU);g.fill()});
 const bandeiras=[];
-[[1.5,2],[8,5],[18,3],[24,6],[-5,5],[30,2],[13,8],[34,7],[-9,9],[21,10]].forEach(([x,k])=>{
+[[1.5,2],[8,5],[18,3],[24,6],[-5,5],[30,2],[13,8],[34,7],[-9,9],[21,10]].forEach(([x0,k])=>{const x=SX(x0);
   const b=plano(1.9,1.3,basico({map:texBR,side:THREE.DoubleSide}),x,Y0+k*RISE+1.75,ZA-.3-k*RUN);b.userData.y=b.position.y;bandeiras.push(b)});
 (function(){
   const lista=[['#1E9B4B','#FFD43B','#1E9B4B',0],['#c8102e','#ffffff','#c8102e',1],['#0b3d91','#ffffff','#c8102e',0],['#111111','#d00000','#ffce00',1],
     ['#1E9B4B','#FFD43B','#1E9B4B',0],['#ffffff','#bc002d','#ffffff',1],['#00247d','#ffffff','#00247d',0],['#009246','#ffffff','#ce2b37',0],['#1E9B4B','#FFD43B','#1E9B4B',0]];
   lista.forEach((f,k)=>{const t=k%4===0?texBR:texCanvas(96,64,(g,w,h)=>{for(let j=0;j<3;j++){g.fillStyle=f[j];if(f[3])g.fillRect(0,j*h/3,w,h/3+1);else g.fillRect(j*w/3,0,w/3+1,h)}});
-    plano(3,2,basico({map:t,side:THREE.DoubleSide}),-7+k*4.9,20.6,ZA-NF*RUN-.25)});
+    plano(3,2,basico({map:t,side:THREE.DoubleSide}),SX(-7+k*4.9),20.6,ZA-NF*RUN-.25)});
   const faixaV=txt=>texCanvas(128,512,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#3EC6E0');gr.addColorStop(1,'#0c3454');g.fillStyle=gr;g.fillRect(0,0,w,h);
     g.fillStyle='#04121F';g.font='800 64px "Arial Black",Arial';g.textAlign='center';g.textBaseline='middle';
     [...txt].forEach((c,j)=>g.fillText(c,w/2,60+j*74));g.fillStyle='#FFC83D';g.fillRect(12,h-26,w-24,10)});
@@ -1564,7 +1570,7 @@ function podioFotos(){
 const canhoes=[];
 (function(){
   const g=new THREE.CylinderGeometry(.1,2.6,34,20,1,true);g.translate(0,-17,0);
-  [[0x3EC6E0,-4,-6],[0xFFC83D,6,6],[0xFF5A4E,12.5,-6],[0x3EC6E0,19,6],[0xFFC83D,29,-6],[0xF2FAFC,12.5,6]].forEach(([cor,x,z],k)=>{
+  [[0x3EC6E0,-4,-6],[0xFFC83D,6,6],[0xFF5A4E,12.5,-6],[0x3EC6E0,19,6],[0xFFC83D,29,-6],[0xF2FAFC,12.5,6]].forEach(([cor,x0,z],k)=>{const x=SX(x0);
     const p=new THREE.Group();p.position.set(x,22,z);grupo.add(p);
     const c=new THREE.Mesh(g,basico({color:cor,transparent:true,opacity:0,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide,fog:false}));
     p.add(c);canhoes.push({p,c,k})});
@@ -2247,7 +2253,7 @@ const bonecos=[];
     g.setAttribute('uv',new THREE.BufferAttribute(U,2));g.setAttribute('aB',new THREE.BufferAttribute(A,2));return g};
   const corpo=()=>{const g=new THREE.CylinderGeometry(R0*.8,R0,H,14,ALTA?26:14,true);g.rotateY(Math.PI);g.translate(0,H/2,0);return g};
   const braco=l=>{const g=new THREE.CylinderGeometry(.1,.14,1.3,8,ALTA?10:6,true);g.translate(0,.65,0);g.rotateZ(-l*Math.PI/2);g.translate(l*R0*.6,H*.66,0);return g};
-  [[-1.5,0],[8.6,1],[16.4,2],[26.5,3]].forEach(([x,k])=>{
+  [[-1.5,0],[8.6,1],[16.4,2],[26.5,3]].forEach(([x0,k])=>{const x=SX(x0);
     const tx=texCanvas(256,512,(g,w,h)=>{g.fillStyle=cores[k];g.fillRect(0,0,w,h);
       g.fillStyle='rgba(255,255,255,.22)';for(let j=0;j<5;j++)g.fillRect(0,150+j*72,w,18);
       const x0=w/2,y0=74;g.fillStyle='#fff';[-34,34].forEach(d=>{g.beginPath();g.arc(x0+d,y0,24,0,TAU);g.fill()});
@@ -2308,11 +2314,11 @@ function filma(dt,T){
   bandCostas[0].visible=true;
   if(RP.on){nome='replay'+RP.ang;filmaReplay();vel=7}
   else if(f==='menu'){const a=T*.1;
-    if(ALTA){camAlvo.set(POOL/2+Math.sin(a)*3,1.6,-4);camPos.set(POOL/2+Math.sin(a)*12,3.4+1.2*Math.sin(a*1.7),14.5+Math.cos(a)*3);vel=1.5}
+    if(ALTA){camAlvo.set(POOL/2+Math.sin(a)*3,1.6,-4);camPos.set(POOL/2+Math.sin(a)*12*POOL/25,3.4+1.2*Math.sin(a*1.7)+(POOL-25)*.12,14.5+Math.cos(a)*3+(POOL-25)*.3);vel=1.5}
     else{camAlvo.set(POOL/2+Math.sin(a)*4,.5,-2);camPos.set(POOL/2+Math.sin(a)*9,7.5,18+Math.cos(a)*3)}}
   else if(f==='marcas'&&ALTA&&S.t<ti){                     // apresentação: voo sobre a piscina e um close de cada jogador atrás do seu bloco
     const t=S.t,hs=JOG.filter(ehHumano),D=(ti-VOO)/hs.length;
-    if(t<VOO){nome='voo';const k=t/VOO,s=k*k*(3-2*k);camPos.set(lerp(POOL+10,8.5,s),lerp(12,4.6,s),lerp(15,9.5,s));camAlvo.set(lerp(POOL/2+2,2,s),lerp(.5,1.6,s),-2.5);vel=9}
+    if(t<VOO){nome='voo';const k=t/VOO,s=k*k*(3-2*k);camPos.set(lerp(POOL+10,8.5,s),lerp(12+(POOL-25)*.2,4.6,s),lerp(15+(POOL-25)*.4,9.5,s));camAlvo.set(lerp(POOL/2+2,2,s),lerp(.5,1.6,s),-2.5);vel=9}
     else{const k=Math.min(hs.length-1,Math.floor((t-VOO)/D)),u=(t-VOO-k*D)/D,lado=k%2?1:-1;quem=hs[k];nome='close'+quem;
       const z=RAIAS[quem],e=modelos[quem].esc;
       camAlvo.set(-1.36,YD+1.62*e,z);camPos.set(1.25-.35*u,YD+1.32*e,z+lado*1.05*(1-.3*u));vel=9}
@@ -2578,14 +2584,14 @@ const zDe=n=>n.z!==undefined?n.z:RAIAS[n.i];
 /* a linha dourada anda no ritmo das parciais do recorde */
 function fantasma(tr){
   const r=S.rm0;if(!r||tr<0||tr>=r.t){linhaRM.visible=false;return}
-  const sp=r.sp&&r.sp.length===4?r.sp:[.25,.5,.75,1].map(k=>k*r.t);
-  let k=0;while(k<3&&tr>=sp[k])k++;
+  const sp=r.sp&&r.sp.length===NPERNAS?r.sp:Array.from({length:NPERNAS},(_,j)=>(j+1)/NPERNAS*r.t);
+  let k=0;while(k<NPERNAS-1&&tr>=sp[k])k++;
   const a=k?sp[k-1]:0,f=(tr-a)/(sp[k]-a);
   linhaRM.visible=true;linhaRM.position.x=k%2?POOL*(1-f):POOL*f;
 }
 function parcial(n,tw){
   n.parc.push(tw);if(!n.humano)return;
-  const r=S.rm0,k=n.parc.length-1;let txt=n.nome+' · '+(k+1)*(S.prova==='jet'?100:25)+' m · '+fmt(tw),cls='';
+  const r=S.rm0,k=n.parc.length-1;let txt=n.nome+' · '+(k+1)*(S.prova==='jet'?100:POOL)+' m · '+fmt(tw),cls='';
   if(r&&r.sp&&r.sp[k]){const d=tw-r.sp[k];txt+='  '+(d<0?'−':'+')+Math.abs(d).toFixed(2);cls=d<0?'bom':'ruim'}
   avisaRM(txt,cls);
 }
@@ -2733,7 +2739,7 @@ function nada(n,dt){
   }
   n.ph=e.tipo==='tempo'?(S.t-n.t0)/e.per+.3:n.ph+dt*(.45+n.v*.6);
   n.x+=n.dir*n.v*dt;
-  if(viva&&n.perna===3&&!n.sprint&&distancia(n)>=86){
+  if(viva&&n.perna===NPERNAS-1&&!n.sprint&&distancia(n)>=86){
     n.sprint=true;
     if(n.humano&&!S.sprint){S.sprint=true;torcida(1.5);anuncia('SPRINT FINAL!',1);narra('Últimos metros! Quem vai bater primeiro?',2,'sprint')}
     if(n.casa)grita(n.i,true);
@@ -2741,13 +2747,13 @@ function nada(n,dt){
   const sobra=n.dir>0?n.x-POOL:-n.x;
   if(sobra>=0){
     const tw=tr-sobra/Math.max(n.v,.5);
-    if(n.perna===3){n.x=n.dir>0?POOL:0;n.estado='fim';if(viva){n.tFim=tw;chegou(n)}}
+    if(n.perna===NPERNAS-1){n.x=n.dir>0?POOL:0;n.estado='fim';if(viva){n.tFim=tw;chegou(n)}}
     else{
       parcial(n,tw);n.perna++;n.dir*=-1;n.x=n.dir>0?sobra:POOL-sobra;n.v=Math.max(n.v,2.8);n.t0=S.t+.55;n.ultB=-1;n.lado=-1;ondEntra(n);
       espirra(n.x,.05,z,10,2.2);
       if(viva)narraVirada(n);                                  // o narrador primeiro; a vovó espera a vez
       if(viva&&n.casa)grita(n.i);
-      if(n.humano){SOM.virada();agita(.45);trocaControle(n);fala(n,S.nado==='medley'?'Agora: '+ES(n).n:n.perna*25+' m')}
+      if(n.humano){SOM.virada();agita(.45);trocaControle(n);fala(n,S.nado==='medley'?'Agora: '+ES(n).n:n.perna*POOL+' m')}
     }
   }
 }
@@ -3127,9 +3133,9 @@ const chPB=k=>'raia-pb-'+PV()+'-'+k;
 /* onde o recorde mundial estaria agora (em metros), para a ficha RM da pista */
 function distRM(tr){
   const r=S.rm0;if(!r||tr<0||tr>=r.t)return -1;
-  const sp=r.sp&&r.sp.length===4?r.sp:[.25,.5,.75,1].map(k=>k*r.t);
-  let k=0;while(k<3&&tr>=sp[k])k++;
-  const a=k?sp[k-1]:0;return (k+(tr-a)/(sp[k]-a))*25;
+  const sp=r.sp&&r.sp.length===NPERNAS?r.sp:Array.from({length:NPERNAS},(_,j)=>(j+1)/NPERNAS*r.t);
+  let k=0;while(k<NPERNAS-1&&tr>=sp[k])k++;
+  const a=k?sp[k-1]:0;return (k+(tr-a)/(sp[k]-a))*POOL;
 }
 function pinta(){
   const tr=S.t-S.tGo,hs=S.nad.filter(n=>n.humano),fim=hs.every(n=>n.estado==='fim');
@@ -3196,7 +3202,8 @@ function mostra(t){
 /* a pista do alto da tela: estilos na natação, distâncias no jet ski (só quatro pilotos) */
 function rotulos(){
   const j=S.prova==='jet';
-  $$('#pista span').forEach((s,k)=>{s.textContent=j?(k+1)*100+' m':S.nado==='medley'?ESTILOS[k].n:(k+1)*25+' m'});
+  $$('#pista span').forEach((s,k)=>{s.hidden=!j&&k>=NPERNAS;s.textContent=j?(k+1)*100+' m':S.nado==='medley'?ESTILOS[k].n:(k+1)*POOL+' m'});
+  $('#pista').style.gridTemplateColumns='repeat('+(j?4:NPERNAS)+',1fr)';
   chips.forEach((c,i)=>{c.hidden=j&&!JET.includes(i)});
 }
 function comeca(){
@@ -3263,7 +3270,10 @@ function pintaRank(ja){
    manda o relógio até o sinal e cuida dos bichos. Nada fica guardado: saiu da página, saiu da sala. ===== */
 const SALATESTE=location.hash.indexOf('salateste')>=0;
 const EST=['bloco','nadando','fim','correndo'],estN=e=>Math.max(0,EST.indexOf(e)),r2=v=>+(+v||0).toFixed(2),r3=v=>+(+v||0).toFixed(3);
-let salaT=0,salaEntrou=0,hostPar=null,salaAss='',salaAutoT=0;
+let salaT=0,salaEntrou=0,hostPar=null,salaAss='',salaAutoT=0,salaRecarga=0;
+/* volta para a sala depois de recarregar a página com a piscina do anfitrião */
+function salaVolta(){if(!guarda.le('raia-sala-volta'))return;guarda.tira('raia-sala-volta');SALA.on=true;
+  $$('#segOnde button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v==='sala')));aplicaOnde();if(typeof vaiPasso==='function')vaiPasso(2)}
 function salaMsg(t){SALA.msg=t;const e=$('#salaMsg');if(e)e.textContent=t}
 
 /* sala de mentira, só para conferência: as cópias do jogo trocam mensagens pela página que as hospeda */
@@ -3299,7 +3309,7 @@ function salaPublica(ja){
   const eu=SALA.meu>=0&&S.fase!=='menu'?S.nad.find(n=>n.i===SALA.meu):null;
   if(eu)p.n=[r2(eu.x),eu.dir,eu.perna,r2(eu.v),estN(eu.estado),r2(eu.salto),r2(eu.tFim),eu.dsq?1:0,r2(eu.rt),eu.turboT>0?1:0,r2(eu.z),eu.dsqPor==='15m'?1:0,eu.ond?1:0];
   if(SALA.host){
-    p.cfg=[S.prova,S.nado,S.nivel,S.oficial?1:0];p.rel=r3(S.t);p.tGo=r3(S.tGo);p.ti=r2(S.ti);p.pr=S.pr?[S.pr.ap,S.pr.lg,S.pr.lg2,S.pr.tym].map(r2):null;
+    p.cfg=[S.prova,S.nado,S.nivel,S.oficial?1:0,POOL];p.rel=r3(S.t);p.tGo=r3(S.tGo);p.ti=r2(S.ti);p.pr=S.pr?[S.pr.ap,S.pr.lg,S.pr.lg2,S.pr.tym].map(r2):null;
     if(S.fase!=='menu')p.bots=S.nad.filter(n=>!n.humano).map(n=>[n.i,r2(n.x),n.dir,n.perna,r2(n.v),estN(n.estado),r2(n.salto),r2(n.tFim),0,r2(n.rt),n.turboT>0?1:0,r2(n.z)]);
     if(S.fase==='fim')p.res=S.nad.map(n=>[n.i,r2(n.tFim),n.dsq?1:0,n.previsto?1:0]);
   }
@@ -3385,6 +3395,8 @@ function salaTic(dt){
     if(SALATESTE)console.log('SALA '+SALA.eu+' largou rod='+SALA.rodada+' tGo='+S.tGo.toFixed(2))}
   const h=hostPar&&!hostPar.sameTab?hostPar.presence:null;
   if(h){
+    if(h.cfg&&h.cfg[4]&&h.cfg[4]!==POOL&&S.fase==='menu'&&!salaRecarga){salaRecarga=1;                   // o anfitrião está noutra piscina: recarrega com a dele e volta para a sala
+      salaMsg('O anfitrião escolheu a piscina de '+h.cfg[4]+' m. Ajustando…');S.piscina=h.cfg[4];salva();guarda.poe('raia-sala-volta','1');setTimeout(()=>location.reload(),900)}
     if(h.cfg&&S.fase==='menu'&&(h.cfg[0]!==S.prova||h.cfg[1]!==S.nado||h.cfg[2]!==S.nivel)){             // o menu acompanha a escolha do anfitrião
       S.prova=h.cfg[0];if(NADOS[h.cfg[1]])S.nado=h.cfg[1];S.nivel=h.cfg[2];aplicaProva();praMenu();
       $$('#segProva button,#segNado button,#segNivel button').forEach(b=>{const k=b.parentElement.id==='segProva'?S.prova:b.parentElement.id==='segNado'?S.nado:String(S.nivel);b.setAttribute('aria-pressed',String(b.dataset.v===k))})}
@@ -3426,6 +3438,7 @@ function aplicaOnde(){
 
   $$('#btMenu,#sair').forEach(b=>b.addEventListener('click',()=>{if(SALA.on)salaPublica(true)}));
   if(SALATESTE){SALA.on=true;marca();aplicaOnde()}
+  if(!SITE&&!SALATESTE)setTimeout(salaVolta,0);
 })();
 
 /* ===== b11: o site público "Nadando com Thiago Pereira" =====
@@ -3489,7 +3502,7 @@ function siteEntrou(p){
   Object.assign(EU,{id:String(p.id||''),email:String(p.email||''),nome:limpaNome(p.nome)||'Atleta',foto:fotoBoa(p.foto),fv:p.fv|0,dono:!!p.dono,sala:String(p.sala||'')});
   SALA.nome=EU.nome;$('#pSenha').value=$('#pSenha2').value='';
   document.documentElement.classList.remove('fora');$('#porta').hidden=true;
-  pintaPerfil();pintaLoc();siteLocal();praMenu();
+  pintaPerfil();pintaLoc();siteLocal();praMenu();setTimeout(salaVolta,0);
   $('#donoBox').hidden=!EU.dono;
   if(!SFAKE){if(EU.dono)cvCarrega();siteRecordes()}
 }
@@ -3682,7 +3695,8 @@ function siteArranca(){
 }catch(e){}})();
 if(location.hash.indexOf('jet')>=0)S.prova='jet';
 {const hn=['livre','costas','peito','borbo'].find(k=>location.hash.indexOf(k)>=0);if(hn)S.nado=hn;const hm=['tres','quatro'].find(k=>location.hash.indexOf(k)>=0);if(hm)S.modo=hm}
-const salva=()=>guarda.poe('raia-opts',JSON.stringify({prova:S.prova,nado:S.nado,narra:S.narra,oficial:S.oficial,ondFacil:!!S.ondFacil,replay:S.replay!==false,nomes:[EXTRA[2].nome,EXTRA[5].nome],modo:S.modo,nivel:S.nivel,vant:S.vant,som:S.som,vovo:S.vovo,vovoNome:VOVO.nome}));
+S.piscina=POOL;if(POOL===50&&S.nado==='medley')S.nado='livre';   // não existe 100 m medley em piscina de 50 m
+const salva=()=>guarda.poe('raia-opts',JSON.stringify({piscina:S.piscina,prova:S.prova,nado:S.nado,narra:S.narra,oficial:S.oficial,ondFacil:!!S.ondFacil,replay:S.replay!==false,nomes:[EXTRA[2].nome,EXTRA[5].nome],modo:S.modo,nivel:S.nivel,vant:S.vant,som:S.som,vovo:S.vovo,vovoNome:VOVO.nome}));
 function teclas(){
   const j=S.prova==='jet';
   if(SITE){const L=SALA.on?[]:LOCAIS(),K={3:'A e D',4:'as setas ← →',2:'J e L',5:'F e H',1:'A e D'};
@@ -3697,12 +3711,18 @@ function seg(id,chave,conv){
   bs.forEach(b=>b.addEventListener('click',()=>{S[chave]=conv(b.dataset.v);marca();salva();teclas()}));
   marca();
 }
+/* piscina: a arena é montada com o tamanho escolhido, então trocar recarrega a página (as opções ficam guardadas) */
+$$('#segPiscina button').forEach(b=>{b.setAttribute('aria-pressed',String(+b.dataset.v===POOL));
+  b.addEventListener('click',()=>{const v=+b.dataset.v;if(v===POOL)return;if(SALA.on&&!SALA.host){salaMsg('Quem escolhe a piscina é o anfitrião.');return}
+    S.piscina=v;if(v===50&&S.nado==='medley')S.nado='livre';salva();if(SALA.on)guarda.poe('raia-sala-volta','1');
+    $$('#segPiscina button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));$('#menuSub').textContent='Montando a piscina de '+v+' m…';setTimeout(()=>location.reload(),150)})});
+if(POOL===50){const m=$('#segNado button[data-v="medley"]');if(m)m.hidden=true}
 seg('segModo','modo',v=>v);seg('segNivel','nivel',v=>+v);seg('segProva','prova',v=>v);seg('segNado','nado',v=>v);
 /* troca de prova: muda o cenário, os textos do menu e o recorde mostrado */
 function aplicaProva(){
   const j=S.prova==='jet';cenario(S.prova);
-  $('#menuSub').textContent=j?'Jet ski · 400 m no mar · 4 pilotos':'Final · 8 raias · '+NADOS[S.nado].t;
-  $('#optNado').hidden=j;trocaLed(j?'JET SKI':NADOS[S.nado].t.toUpperCase());
+  $('#menuSub').textContent=j?'Jet ski · 400 m no mar · 4 pilotos':'Final · 8 raias · '+NADOS[S.nado].t+' · piscina de '+POOL+' m';
+  $('#optNado').hidden=j;$('#optPiscina').hidden=j;trocaLed(j?'JET SKI':NADOS[S.nado].t.toUpperCase());
   $('#comoNado').hidden=j;$('#comoJet').hidden=!j;$('#btGo').textContent=j?'Ligar o motor':'Cair na água';
 }
 $$('#segProva button,#segNado button').forEach(b=>b.addEventListener('click',()=>{aplicaProva();praMenu()}));
@@ -3809,7 +3829,7 @@ if(SALATESTE)setInterval(()=>quadro(performance.now()),16);else requestAnimation
 /* ===== b14: tela inicial em três passos, volume e o ranking Top 10 de cada prova =====
    Passo 1: quem é você (nome e foto). Passo 2: onde e o quê (treino ou sala, quantos, natação ou jet ski).
    Passo 3: nado, rivais, a sala (quando for o caso) e o botão grande de cair na água. Quem já jogou cai direto no passo 3. */
-const PASSOS={1:['.vs','#perfil','#extras','#turma','#donoBox'],2:['#optOnde','#optLoc','#optProva','#optModo'],3:['#optNado','#optNivel','#salaBox','#topMenu','#maisBox','#btGo','#rmMenu']};
+const PASSOS={1:['.vs','#perfil','#extras','#turma','#donoBox'],2:['#optOnde','#optLoc','#optProva','#optPiscina','#optModo'],3:['#optNado','#optNivel','#salaBox','#topMenu','#maisBox','#btGo','#rmMenu']};
 let passoAtual=1;
 (function(){
   const card=$('#menu .card');if(!card)return;

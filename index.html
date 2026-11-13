@@ -385,6 +385,7 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
         <details class="mais">
           <summary>Como jogar e opções</summary>
           <div class="dentro">
+            <p class="como"><b>Ondulação (debaixo d'água, depois do mergulho e de cada virada):</b> toque as duas teclas juntas, ao mesmo tempo, várias vezes seguidas, no ritmo da bolinha amarela: toc, toc, toc (umas 3 vezes por segundo). Não é para segurar. Thiago: A + D; Luca: ← + →; jogando sozinho, a barra de espaço também vale. Suba antes dos 15 m: quando aparecer “Sobe!”, volte a alternar as teclas. Achou difícil? Ligue “Ondulação fácil” logo abaixo, e aí um toque só já vale.</p>
             <p class="como" id="comoNado"><b>Largada como na competição:</b> apitos curtos, apito longo para subir no bloco, “take your marks” e o sinal. Só aperte PULAR depois do sinal: quem sai antes é desclassificado. No nado costas a saída é de dentro da água. <b>Borboleta e peito:</b> aperte quando o anel fechar no círculo. <b>Costas e livre:</b> alterne esquerda e direita o mais rápido que der. Acertou em sequência, enche o turbo. A linha dourada na água é o recorde mundial.</p>
             <p class="como" id="comoJet" hidden><b>Jet ski:</b> ele acelera sozinho. Troque de faixa para desviar das boias vermelhas e passar pelos anéis dourados, que enchem o turbo. A rampa faz o jet voar por cima de tudo. Bateu na boia, perde velocidade. Apertar logo no JÁ dá largada relâmpago. A linha dourada no mar é o recorde mundial.</p>
             <p class="como" id="teclas"></p>
@@ -2603,7 +2604,7 @@ function parcial(n,tw){
    Cadência constante rende mais que rajada; pulso lento perde o embalo e o nadador sobe sozinho.
    Campos do nadador (todos locais, nada vai para a sala): ond, ondK (chutes), ondT (hora do último), ondT0, ondIv (intervalo),
    ondR (ritmo de 0 a 1), ondSolto (toques sem par), ondAv (já avisou), ondP (hora de cada tecla), ondAte, ondFim, dsqPor ===== */
-const OND={jan:100,lim:15,limPeito:7,aviso:3,avisoPeito:1.5};
+const OND={jan:170,lim:15,limPeito:7,aviso:3,avisoPeito:1.5};
 if(location.hash.indexOf('ondfacil')>=0)S.ondFacil=true;       // modo fácil (um toque só vale como chute); o menu pode ligar S.ondFacil
 const ondDist=n=>n.dir>0?n.x:POOL-n.x;                         // metros desde a parede de onde saiu
 const ondLim=n=>iE(n.perna)===2?OND.limPeito:OND.lim;
@@ -2653,7 +2654,7 @@ function ondAperta(n,lado){
   const ag=performance.now(),o=n.ondP,eu=lado?1:0;
   if(ag-o[1-eu]<=OND.jan){o[0]=o[1]=-1e9;return ondChute(n)}
   o[eu]=ag;
-  if(++n.ondSolto>=(n.ondAv?2:4)){                             // está alternando as teclas: quer nadar. Sobe e volta à braçada
+  if(++n.ondSolto>=(n.ondAv?3:6)){                             // está alternando as teclas: quer nadar. Sobe e volta à braçada
     ondSobe(n,'bom');if(ES(n).tipo==='alt')aperta(n.i,lado)}
 }
 function ondPasso(n,dt){
@@ -2662,7 +2663,7 @@ function ondPasso(n,dt){
   if(n.salto>.12)return;
   if(!n.ondT0)n.ondT0=S.t;
   if(AUTO){if(d>=n.ondAte)return ondSobe(n,'bom');if(S.t-n.ondT>=.3)ondChute(n)}                 // conferência: chuta sozinho, com cadência boa
-  else if(n.ondK?S.t-n.ondT>.72:S.t-n.ondT0>1.15)return ondSobe(n,'lento');                      // pulso lento: perde o embalo e sobe
+  else if(n.ondK?S.t-n.ondT>.8:S.t-n.ondT0>1.8)return ondSobe(n,'lento');                      // pulso lento: perde o embalo e sobe
   if(!n.ondAv&&d>=ondAvisa(n)){n.ondAv=1;fala(n,'Sobe!');popTexto(n,'Sobe!','#FF5A4E');SOM.bom();treme(30)}
   if(d>=lim){                                                  // passou da marca submerso: falta
     const pe=iE(n.perna)===2;
@@ -3055,6 +3056,9 @@ function avisaRM(txt,cls){
   '.ondm{flex:1.7;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;text-align:center;border-radius:16px;border:2px dashed color-mix(in srgb,var(--cor) 55%,#0000);background:#04121f66;padding:4px 6px}'+
   '.ondm b{font:800 clamp(11px,1.5vw,15px) var(--display);color:var(--foam,#F2FAFC);line-height:1.1}'+
   '.ondm small{font:700 10px var(--body);color:var(--muted,#9fb7c6);letter-spacing:.04em}'+
+  '.ondm .ritmo{display:flex;align-items:center;gap:7px;font:700 11px var(--body);font-style:normal;color:#FFC83D;letter-spacing:.03em}'+
+  '.ondm .ritmo i{width:12px;height:12px;border-radius:50%;background:#FFC83D;animation:ondbate .34s ease-out infinite}'+
+  '@keyframes ondbate{0%{transform:scale(1.35);opacity:1}100%{transform:scale(.55);opacity:.35}}'+
   '.ondb{width:88%;height:9px;border-radius:5px;background:#ffffff26;position:relative;overflow:hidden}'+
   '.ondb i{position:absolute;left:0;top:0;bottom:0;width:0;background:#5FD38D;border-radius:5px}'+
   '.ondb u{position:absolute;top:0;bottom:0;width:2px;background:#FFC83D}'+
@@ -3063,7 +3067,7 @@ function avisaRM(txt,cls){
   '@keyframes ondruim{0%{background:#FF5A4E;border-color:#FF5A4E}100%{background:#04121f66}}'+
   '.pad.sobe .ondm{border-color:#FF5A4E;border-style:solid;animation:ondsobe .32s linear infinite alternate}.pad.sobe .ondb i{background:#FF5A4E}.pad.sobe .ondm b{color:#FFC83D}'+
   '@keyframes ondsobe{0%{background:#04121f66}100%{background:#ff5a4e80}}'+
-  '#pads.n4 .ondm small{display:none}#pads.n4 .bt.ond{flex:.6}'+
+  '#pads.n4 .ondm small,#pads.n3 .ondm small{display:none}#pads.n4 .ondm .ritmo{font-size:9px}#pads.n4 .bt.ond{flex:.6}'+
   '@media (prefers-reduced-motion:reduce){.pad.sobe .ondm{animation:none;background:#ff5a4e55}}';
   document.head.appendChild(st)})();
 const TOQUE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
@@ -3094,7 +3098,7 @@ function trocaControle(n){
   if(tipo==='pula')c.innerHTML='<button class="bt vez" data-l="0">'+(iE(0)===1?'IMPULSO':'PULAR')+'</button>';
   else if(tipo==='ond'){                                          // submerso: as duas teclas juntas (no toque, os dois botões acesos); no modo fácil, um botão só
     const k=ondTeclas(n),lim=ondLim(n),pe=iE(n.perna)===2,solo=S.nad.filter(o=>o.humano&&!o.remoto).length===1;
-    const meio='<div class="ondm"><b>'+(S.ondFacil?'Chute no ritmo!':TOQUE?'Os dois juntos!':k[0]+' + '+k[1]+' juntas!')+'</b><div class="ondb"><i></i><u style="left:'+(ondAvisa(n)/lim*100).toFixed(0)+'%"></u></div>'
+    const meio='<div class="ondm"><b>'+(S.ondFacil?'Toque no ritmo':TOQUE?'Toque os dois juntos':'Toque '+k[0]+' + '+k[1]+' juntas')+'</b><em class="ritmo"><i></i>várias vezes · toc toc toc · não segure</em><div class="ondb"><i></i><u style="left:'+(ondAvisa(n)/lim*100).toFixed(0)+'%"></u></div>'
       +'<small>'+(pe?'saída do peito · sobe antes dos '+lim+' m':(solo&&!TOQUE&&!S.ondFacil?'ou espaço · ':'')+'sobe antes dos '+lim+' m')+'</small></div>';
     c.innerHTML=S.ondFacil?'<button class="bt ond vez" data-l="0">CHUTE</button>'+meio
       :'<button class="bt ond vez" data-l="0">'+(TOQUE?'●':k[0])+'</button>'+meio+'<button class="bt ond vez" data-l="1">'+(TOQUE?'●':k[1])+'</button>';

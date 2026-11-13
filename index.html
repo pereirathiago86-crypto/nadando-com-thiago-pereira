@@ -1097,7 +1097,7 @@ if(ALTA){
 }
 
 const TORCM=[];                                          // malhas da torcida: {im,refl,total}; no reflexo só corpo e cabeça, na refração nada
-const soTela=[];                                         // o que só aparece na tela final (crachás), nunca no reflexo
+const soTela=[],SEMREFLEXO=[];                           // SEMREFLEXO: os nadadores, que não aparecem espelhados na água (pedido dele: parecia ter nadador a mais)                                         // o que só aparece na tela final (crachás), nunca no reflexo
 let larg=0,alt=0;
 function ajusta(){
   const w=tela.clientWidth,h=tela.clientHeight;if(!w||!h||(w===larg&&h===alt))return;
@@ -1126,8 +1126,9 @@ function desenha(){
   R.shadowMap.autoUpdate=true;
   if(arena.visible&&!sub&&(econ<2||quadroN%2===0)){
     agua.visible=false;soTela.forEach(o=>{o.userData.v=o.visible;o.visible=false});
-    TORCM.forEach(o=>{o.im.visible=o.refl});
+    TORCM.forEach(o=>{o.im.visible=o.refl});SEMREFLEXO.forEach(o=>{o.userData.vr=o.visible;o.visible=false});
     espelho();R.setRenderTarget(rtRefl);R.render(cena,camR);
+    SEMREFLEXO.forEach(o=>{o.visible=o.userData.vr});
     R.shadowMap.autoUpdate=false;
     TORCM.forEach(o=>{o.im.visible=false});
     submersa();const f=cena.background;cena.background=corFundo;
@@ -1165,7 +1166,7 @@ const fundoMat=new THREE.ShaderMaterial({
     else if(ponta){linha=(1.-smoothstep(.115,.14,lz))*step(-1.35,wp.y)*step(wp.y,-.25);
       linha=max(linha,(1.-smoothstep(.115,.14,abs(wp.y+.8)))*step(lz,.5));}
     cor=mix(cor,vec3(.03,.08,.16),linha);
-    float ca=caus((chao?wp.xz:q)*.21,uT*.55+23.);
+    float ca=caus((chao?wp.xz:q)*.21,uT*.8+23.);
     cor+=vec3(.75,.95,.90)*ca*(chao?.85:.4);
     if(chao){float s=0.;
       for(int i=0;i<8;i++){vec2 d=wp.xz-vec2(uN[i].x+${(POOL/2-.4).toFixed(2)},-uN[i].y-.75);s=max(s,uS[i]*smoothstep(1.3,.2,length(d*vec2(.72,2.3))));}
@@ -1183,7 +1184,7 @@ const fundoMat=new THREE.ShaderMaterial({
 })();
 
 /* ---------- a superfície ---------- */
-const ONDA=`float alt(vec2 q){return .5*sin(q.x*1.3+uT*1.1)*sin(q.y*1.7-uT*.9)+.3*sin(q.x*3.1-uT*1.7+q.y*2.3)+.18*sin(q.x*5.3+q.y*6.1+uT*2.3)+.07*sin(q.x*11.+uT*3.1)*sin(q.y*9.-uT*2.7);}`;
+const ONDA=`float alt(vec2 q){float t=uT*1.45;return .62*sin(q.x*1.3+t*1.1)*sin(q.y*1.7-t*.9)+.36*sin(q.x*3.1-t*1.7+q.y*2.3)+.24*sin(q.x*5.3+q.y*6.1+t*2.3)+.12*sin(q.x*11.+t*3.1)*sin(q.y*9.-t*2.7)+.06*sin(q.x*19.-t*4.2+q.y*15.);}`;   // água mais viva: ondas mais altas e mais rápidas
 const AGITO=`float esp=0.;
     for(int i=0;i<8;i++){vec4 s=uN[i];vec2 d=p-s.xy;float dx=d.x*s.w,at=clamp(-dx/5.,0.,1.);
       float corpo=smoothstep(1.3,.2,length(d*vec2(.6,1.5)));
@@ -1197,7 +1198,7 @@ const aguaMat=new THREE.ShaderMaterial(ALTA?{
   uniform float uT,uSub;uniform vec3 uCam;uniform vec4 uN[8];uniform sampler2D tRefl,tRefr;uniform vec2 uRes;
   `+ONDA+`
   void main(){
-    float h0=alt(p);vec2 g=vec2(h0-alt(p+vec2(.05,0.)),h0-alt(p+vec2(0.,.05)))*1.5;
+    float h0=alt(p);vec2 g=vec2(h0-alt(p+vec2(.05,0.)),h0-alt(p+vec2(0.,.05)))*1.9;
     `+AGITO+`
     vec3 n=normalize(vec3(g.x,1.,-g.y)),vd=uCam-wp;float dist=length(vd);vec3 v=vd/dist,cor;
     if(uSub>.5){                                             // a superfície vista de dentro d'água
@@ -1205,11 +1206,11 @@ const aguaMat=new THREE.ShaderMaterial(ALTA?{
       cor=mix(vec3(.012,.17,.29)+vec3(.02,.10,.14)*sin(p.x*3.+uT*2.)*sin(p.y*4.-uT*1.6),vec3(.32,.82,1.)*1.7,jan)+vec3(.9)*pow(max(0.,1.-length(n.xz)*2.4),10.)*jan;
     }else{
       vec2 suv=gl_FragCoord.xy/uRes;float k=clamp(7./dist,.12,1.);
-      vec3 refr=texture2D(tRefr,suv+n.xz*vec2(.05,.035)*k).rgb;
+      vec3 refr=texture2D(tRefr,suv+n.xz*vec2(.014,.01)*k).rgb;
       vec3 refl=texture2D(tRefl,vec2(1.-suv.x,suv.y)+n.xz*vec2(.07,.11)*k).rgb;
       float fr=clamp(.02+.98*pow(1.-max(dot(n,v),0.),5.),0.,1.);
       cor=mix(refr*vec3(.62,.90,1.)+vec3(0.,.012,.022),refl,fr);
-      cor+=vec3(1.,.96,.88)*pow(max(dot(reflect(-v,n),normalize(vec3(.26,.85,.46))),0.),480.)*5.;
+      cor+=vec3(1.,.96,.88)*pow(max(dot(reflect(-v,n),normalize(vec3(.26,.85,.46))),0.),420.)*3.2;   // cintilância das luzes do teto
       float ru=.6+.4*sin(p.x*23.+uT*5.)*sin(p.y*29.-uT*4.);
       cor=mix(cor,vec3(.78,.88,.95),clamp(esp*ru,0.,.85));
     }
@@ -1960,6 +1961,7 @@ function criaNadador(i,pai,base){
   let est=null;
   if(!pai){est=new THREE.Mesh(GEO_EST,basico({map:texEsteira,transparent:true,opacity:0,depthWrite:false}));     // esteira: espuma na superfície, atrás dos pés
     est.rotation.x=-Math.PI/2;est.position.set(-3,.034,0);est.visible=false;g.add(est);soTela.push(est)}
+  SEMREFLEXO.push(g);
   if(pai)pai.add(g);else{g.position.z=RAIAS[i];arena.add(g)}
   return {og,ogU,ogD,est,g,corpo,cabeca,cranio,olhos,mTronco,bE,bD,pE,pD,brilho,med,mMed,pintaTouca,tag,esc,hum,pele,mPele,rostoTela,rostoTex,crachaTela,crachaTex,tagL:hum?1.5:.95,tagA:hum?.48:.307};
 }
@@ -2150,7 +2152,7 @@ function posa(n,dt){
   m.tag.scale.set(m.tagL*fd,m.tagA*fd,1);m.tag.position.set(hxl,Math.max(hyl,.02)+.36+m.tagA*fd*.5+.04*Math.sin(T*4+n.i),0);
   m.tag.material.opacity=(m.hum?1:(f==='prova'?.7:1))*clamp((cam.position.distanceTo(_wp)-3.6)/2,0,1);
   m.brilho.position.set(m.cx-.3,Math.max(m.cy,0)+.2,0);
-  m.brilho.material.opacity=lerp(m.brilho.material.opacity,n.turboT>0?.85:0,.15);
+  m.brilho.material.opacity=0;m.brilho.visible=false;                    // sem o brilho em volta do nadador (o turbo já tem o rastro arco-íris)
   if(m.est){const o=m.est,on=!cer&&n.estado==='nadando'&&n.salto<=0,al=on?clamp((n.v-.5)/2.2,0,1)*clamp(1-n.fundo*5,0,1)*(ALTA?.62:.42):0,sx=.55+n.v*.2;   // esteira: cresce com a velocidade, some quando está submerso
     o.material.opacity=cer?0:lerp(o.material.opacity,al*(.85+.15*Math.sin(T*9+n.i)),1-Math.exp(-dt*5));o.visible=o.material.opacity>.015;
     o.scale.x=sx;o.position.x=m.cx-1.45*e-1.5*sx}

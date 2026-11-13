@@ -2228,6 +2228,22 @@ function movePops(dt){
   pops.forEach(p=>{if(p.v<=0)return;p.v-=dt*1.15;if(p.v<=0){p.s.visible=false;p.s.material.opacity=0;return}
     const k=1-p.v,e=k<.14?k/.14*1.22:Math.max(1,1.22-(k-.14)*1.6),fd=clamp(cam.position.distanceTo(_pv.set(p.x,1,p.z))/11,.7,2.2);
     p.s.position.set(p.x,.95+k*.85,p.z);p.s.scale.set(2.2*e*fd,.629*e*fd,1);p.s.material.opacity=p.v>.3?1:p.v/.3})}
+/* anel de luz colorido na água em volta do nadador: o sinal de acerto (verde), quase (amarelo) e erro (vermelho) */
+const texSinal=texCanvas(128,128,g=>{const r=g.createRadialGradient(64,64,20,64,64,62);
+  r.addColorStop(0,'rgba(255,255,255,0)');r.addColorStop(.62,'rgba(255,255,255,.95)');r.addColorStop(.8,'rgba(255,255,255,.4)');r.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=r;g.fillRect(0,0,128,128)});
+const anelS=[];let nAS=0;
+for(let k=0;k<12;k++){const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),basico({map:texSinal,transparent:true,opacity:0,depthWrite:false,color:0xffffff}));
+  m.rotation.x=-Math.PI/2;m.visible=false;cena.add(m);anelS.push({m,v:0,n:null})}
+
+function anelLuz(n,c){
+  if(S.prova==='jet'&&!n.m)return;const a=anelS[nAS++%anelS.length];a.v=1;a.n=n;a.m.visible=true;
+  a.m.material.color.setRGB(c[0],c[1],c[2]);if(ALTA)a.m.material.color.convertSRGBToLinear();
+}
+function moveAneisS(dt){
+  if(location.hash.indexOf('sinalteste')>=0)dt=0;                 // conferência: anéis parados para a foto
+  anelS.forEach(a=>{if(a.v<=0)return;a.v-=dt*2.6;if(a.v<=0){a.m.visible=false;return}
+    const n=a.n,jt=S.prova==='jet',x=jt?n.x:n.x+n.dir*.1,z=jt?n.z:RAIAS[n.i],k=1-a.v;
+    a.m.position.set(x,jt?.08:.035,z);a.m.scale.set((jt?2.8:2.2)+k*1.6,(jt?2.2:1.5)+k*1.1,1);a.m.material.opacity=.95*Math.min(1,a.v*1.6)})}
 const _v2=new THREE.Vector2();let luzPara=false;          // luzPara: congela as faíscas (só para a foto de conferência)
 function moveLuzes(dt){
   if(luzPara){luzes.material.uniforms.uPx.value=R.getDrawingBufferSize(_v2).y/(2*Math.tan(cam.fov*Math.PI/360));return}
@@ -2241,7 +2257,7 @@ function moveLuzes(dt){
     const f=lVida[k]/lDur[k],b=Math.pow(f,.8)*(.75+.25*Math.sin(k*12.9+TT*38));
     lCor[i]=lC0[i]*b;lCor[i+1]=lC0[i+1]*b;lCor[i+2]=lC0[i+2]*b;lTam[k]=lT0[k]*(.45+.55*f)}
   lGeo.attributes.position.needsUpdate=lGeo.attributes.cor.needsUpdate=lGeo.attributes.tam.needsUpdate=true;
-  movePops(dt);
+  movePops(dt);moveAneisS(dt);
   luzes.material.uniforms.uPx.value=R.getDrawingBufferSize(_v2).y/(2*Math.tan(cam.fov*Math.PI/360));
 }
 
@@ -2650,7 +2666,7 @@ function ondChute(n){
   if(ok&&g>.8)n.turbo=clamp(n.turbo+.03,0,.99);
   borbulha(n.x-n.dir*.9,-.45,RAIAS[n.i],ALTA?6:3);
   if(S.t-(n.somT||0)>.16){n.somT=S.t;SOM.agua()}
-  ondPisca(n,ok);if(n.ondBom===3)fala(n,'Bom ritmo!');
+  ondPisca(n,ok?(g>.8?1:2):0);if(n.ondBom===3)fala(n,'Bom ritmo!');
   if(!ok&&n.ondAv)ondSobe(n,'bom');                             // perto da marca, chute fora do ritmo já é subir: ninguém é pego de surpresa
   else if(n.ondR<=0&&n.ondK>=4)ondSobe(n,'lento');              // perdeu o ritmo de vez: sobe sozinho e volta à braçada
 }
@@ -2701,17 +2717,17 @@ function aperta(i,lado){
   const e=ES(n),z=RAIAS[n.i];let ganho=0,tb=0,txt='';
   if(e.tipo==='tempo'){
     const k=Math.round((S.t-n.t0)/e.per),d=Math.abs(S.t-(n.t0+k*e.per));
-    if(k<0||k<=n.ultB){ganho=.08;tb=-.1;n.combo=0;txt='Calma!';SOM.erro()}
+    if(k<0||k<=n.ultB){ganho=.08;tb=-.1;n.combo=0;txt='Calma!';SOM.erro();sinal(n,'r')}
     else{n.ultB=k;
-      if(d<=.085){ganho=1.45;tb=.12;n.combo++;txt=n.combo>1?'Perfeito x'+n.combo:'Perfeito!';SOM.perfeito()}
-      else if(d<=.19){ganho=1;tb=.05;n.combo=0;txt='Bom';SOM.bom()}
-      else{ganho=.08;tb=-.1;n.combo=0;txt='Fora do tempo';SOM.erro()}
+      if(d<=.085){ganho=1.45;tb=.12;n.combo++;txt=n.combo>1?'Perfeito x'+n.combo:'Perfeito!';SOM.perfeito();sinal(n,'v')}
+      else if(d<=.19){ganho=1;tb=.05;n.combo=0;txt='Bom';SOM.bom();sinal(n,'a')}
+      else{ganho=.08;tb=-.1;n.combo=0;txt='Fora do tempo';SOM.erro();sinal(n,'r')}
       if(ganho>.5)espirra(n.x+n.dir*.7,.05,z,7,1.8);if(ganho>1.2)estrelas(n);
     }
   }else{
-    if(lado!==n.lado){ganho=e.imp;tb=.018;n.lado=lado;espirra(n.x+n.dir*.6,.05,z+(lado?-.35:.35),2,1.4);
+    if(lado!==n.lado){ganho=e.imp;tb=.018;n.lado=lado;sinal(n,'v');espirra(n.x+n.dir*.6,.05,z+(lado?-.35:.35),2,1.4);
       if(S.t-(n.somT||0)>.16){n.somT=S.t;SOM.agua()}}
-    else{ganho=.06;txt='Alterne!'}
+    else{ganho=.06;txt='Alterne!';sinal(n,'r')}
   }
   const vant=(n.i===HL&&S.vant&&!SITE),emTurbo=n.turboT>0;
   const teto=(e.cap||2.75)*(emTurbo?1.25:1)*(vant?1.1:1);
@@ -2899,10 +2915,10 @@ function cruza(n,k){
   if(t===1){
     if(n.salto>0)return;
     n.v*=.35;n.batida=.7;n.turbo=Math.max(0,n.turbo-.2);espirra(n.x,.2,n.z,16,2.6);
-    if(n.humano){SOM.erro();treme(40);fala(n,'Bateu na boia!');narra(n.nome+' bateu na boia!',1,'boia')}
+    if(n.humano){SOM.erro();treme(40);fala(n,'Bateu na boia!');sinal(n,'r');narra(n.nome+' bateu na boia!',1,'boia')}
   }else if(t===2){
     if(o)o.visible=false;n.turbo=Math.min(1,n.turbo+.34);
-    if(n.humano){SOM.perfeito();fala(n,'Anel!')}
+    if(n.humano){SOM.perfeito();fala(n,'Anel!');sinal(n,'v')}
     if(n.turbo>=1&&n.turboT<=0){n.turbo=0;n.turboT=2.6;espirra(n.x,.2,n.z,14,2.4);
       if(n.humano){SOM.turbo();agita(.35);fala(n,'TURBO!')}
       if(n.casa&&S.fase!=='fim')grita(n.i)}
@@ -3076,11 +3092,25 @@ function avisaRM(txt,cls){
   '#pads.n4 .ondm small,#pads.n3 .ondm small{display:none}#pads.n4 .ondm .ritmo{font-size:9px}#pads.n4 .bt.ond{flex:.6}'+
   '@media (prefers-reduced-motion:reduce){.pad.sobe .ondm{animation:none;background:#ff5a4e55}}';
   document.head.appendChild(st)})();
+/* sinal de cada movimento: verde acertou, amarelo foi quase, vermelho errou. Pisca o pad inteiro e acende um anel de luz na água */
+(function(){const st=document.createElement('style');st.textContent=
+  '.pad.sv,.pad.sa,.pad.sr{animation:sinal .34s ease-out}'+
+  '.pad.sv{--sc:#5FD38D}.pad.sa{--sc:#FFC83D}.pad.sr{--sc:#FF5A4E}'+
+  '@keyframes sinal{0%{box-shadow:0 0 0 3px var(--sc),0 0 34px 6px var(--sc),inset 0 0 60px var(--sc)}100%{box-shadow:0 0 0 0 transparent,0 0 0 0 transparent,inset 0 0 0 transparent}}'+
+  '.ondm.meio{animation:ondmeio .3s ease-out}@keyframes ondmeio{0%{background:#FFC83D;border-color:#FFC83D}100%{background:#04121f66}}'+
+  '@media (prefers-reduced-motion:reduce){.pad.sv,.pad.sa,.pad.sr{animation-duration:.6s}}';document.head.appendChild(st)})();
+const SINC={v:[.37,.83,.55],a:[1,.78,.24],r:[1,.35,.31]};
+function sinal(n,q){                                      // q: 'v' acertou, 'a' quase, 'r' errou
+  if(!n||n.remoto)return;const ag=performance.now();
+  if(q==='v'&&ag-(n.sinT||0)<120)return;n.sinT=ag;          // na braçada alternada não vira pisca-pisca
+  if(n.pad){n.pad.classList.remove('sv','sa','sr');void n.pad.offsetWidth;n.pad.classList.add('s'+q)}
+  if(typeof anelLuz==='function')anelLuz(n,SINC[q]);
+}
 const TOQUE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 /* as duas teclas de cada raia (no site o convidado da raia 2 usa A e D) */
 const ondTeclas=n=>S.nad.filter(o=>o.humano&&!o.remoto).length===1?['←','→']:({3:['A','D'],4:['←','→'],2:['J','L'],5:['F','H'],1:['A','D']}[n.i]||['←','→']);
 /* pisca o miolo do pad: verde quando o chute valeu, vermelho quando saiu fora do ritmo */
-function ondPisca(n,ok){const m=n.ondM;if(!m)return;m.classList.remove('ok','ruim');void m.offsetWidth;m.classList.add(ok?'ok':'ruim');if(ok)treme(8)}
+function ondPisca(n,ok){sinal(n,ok===2?'a':ok?'v':'r');const m=n.ondM;if(!m)return;m.classList.remove('ok','ruim','meio');void m.offsetWidth;m.classList.add(ok===2?'meio':ok?'ok':'ruim');if(ok===1)treme(8)}
 /* barra dos metros submersos e o alerta de subir */
 function ondTela(n,d,lim){if(!n.ondBar)return;n.ondBar.style.width=(clamp(d/lim,0,1)*100).toFixed(1)+'%';
   const av=d>=ondAvisa(n);if(av!==!!n.ondSobeV){n.ondSobeV=av;n.pad.classList.toggle('sobe',av);if(av&&n.ondTxt)n.ondTxt.textContent='SOBE!'}}
@@ -3827,6 +3857,7 @@ if(DEMO){
   setTimeout(()=>{document.documentElement.dataset.grito=VOVO.buf[1]?VOVO.buf[1].map(b=>b.duration.toFixed(2)).join(' '):'sem'},1200);
   ajusta();for(let k=0;k<120;k++)filma(.05,0);     // câmera já no lugar
   pops.forEach(p=>{p.v=0;p.s.visible=false});      // as palavras que saltaram durante o salto de tempo não ficam penduradas
+  if(location.hash.indexOf('sinalteste')>=0){anelS.forEach(x=>{x.v=0;x.m.visible=false});const hs=S.nad.filter(n=>n.humano);if(hs[0])anelLuz(hs[0],SINC.v);if(hs[1])anelLuz(hs[1],SINC.r);if(hs[0])sinal(hs[0],'v');if(hs[1])sinal(hs[1],'r')}
   if(location.hash.indexOf('fogo')>=0){            // conferência dos fogos e dos chafarizes: solta tudo de uma vez e anda meio segundo
     showFila.length=0;chafs.length=0;for(let k=0;k<NL;k++)lVida[k]=0;
     const pd=S.cerim>=0;for(let k=0;k<7;k++)fogo(pd?lerp(4,21,Math.random()):lerp(-5,9,Math.random()),3.3+Math.random()*2.3,pd?lerp(-20,-15,Math.random()):lerp(-16,-10,Math.random()),CORF[k%CORF.length],110,5);

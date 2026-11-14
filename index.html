@@ -693,11 +693,22 @@ const POOL=(()=>{try{if(location.hash.indexOf('p50')>=0)return 50;const o=JSON.p
 let NPERNAS=100/POOL,DISTT=100;const SX=x=>POOL/2+(x-12.5)*POOL/25;   // SX estica para a piscina de 50 uma posição pensada para a de 25
 const LARG=16, RAIAS=[-7,-5,-3,-1,1,3,5,7], TAU=Math.PI*2, HT=3, HL=4;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), lerp=(a,b,t)=>a+(b-a)*t;
+/* O TEMPO DE CADA NADO (o segredo do jogo). Cada nado tem o seu compasso, parecido com o de verdade:
+   borboleta e peito são de TEMPO: um toque por braçada, na hora em que o anel fecha (é o instante da puxada do boneco).
+     per = duração da braçada (o peito é mais lento e desliza mais); jp e jb = meia janela do Perfeito e do Bom, em segundos
+     (criança erra de 100 a 150 ms e quem espera o verde chega uns 0,3 s depois: o Bom é largo); vp e vb = velocidade média de quem só faz Perfeito ou só faz Bom;
+     dec = quanto do embalo se perde por segundo entre uma braçada e outra.
+   costas e livre são ALTERNADOS: um braço de cada vez. iv0 a iv1 = intervalo confortável entre os toques; ivI = o ideal, que o
+     botão mostra enchendo (o costas gira mais devagar que o livre; perto do nado de verdade: uns 0,5 a 0,6 s por braço);
+     cap = velocidade de cruzeiro.
+   cpu = proporção de velocidade do nado para os bichos (livre > borboleta > costas > peito, como na vida).
+   gp, gb (ganho de cada toque), cap e vm (velocidade de referência) dos nados de tempo saem da conta logo abaixo. */
 const ESTILOS=[
-  {n:'Borboleta',tipo:'tempo',per:.72,cpu:1},
-  {n:'Costas',tipo:'alt',imp:.34,cap:2.5,cpu:.92},
-  {n:'Peito',tipo:'tempo',per:.95,cpu:.82},
-  {n:'Livre',tipo:'alt',imp:.38,cap:2.75,cpu:1.08}];
+  {n:'Borboleta',tipo:'tempo',per:.9,jp:.09,jb:.28,vp:2.3,vb:2,dec:.55,cpu:1},
+  {n:'Costas',tipo:'alt',iv0:.28,iv1:.8,ivI:.58,cap:2,cpu:.92},
+  {n:'Peito',tipo:'tempo',per:1.2,jp:.1,jb:.34,vp:1.98,vb:1.73,dec:.5,cpu:.86},
+  {n:'Livre',tipo:'alt',iv0:.24,iv1:.7,ivI:.5,cap:2.6,cpu:1.08}];
+ESTILOS.forEach(e=>{if(e.tipo==='tempo'){const k=e.dec*e.per;e.gp=e.vp*k;e.gb=e.vb*k;e.cap=e.gp/(1-Math.exp(-k))*1.05;e.vm=e.vp}else e.vm=e.cap});
 /* raias 1 a 8: os dois da casa no meio, como em final olímpica */
 const QUEM=[
   {nome:'Pinguim',cor:'#8FB3D9',emoji:'🐧',f:.87},
@@ -714,11 +725,11 @@ const SITE=typeof SITECFG==='object'&&!!SITECFG;
 const EU={id:'',email:'',nome:'',foto:'',fv:0,dono:false,sala:'',token:''},FOTOSITE={};   // quem está logado no site e a foto de cada raia
 if(SITE)QUEM[HL]={nome:'Jacaré',cor:'#FFC83D',emoji:'🐊',f:.95};
 const limpaNome=s=>String(s==null?'':s).replace(/[<>&"'`\\]/g,'').trim().slice(0,12);   // nome que vem de outro aparelho entra limpo
-const NIVEL=[1.75,2.05,2.4];
+const NIVEL=[1.75,2.12,2.4];                               // velocidade dos bichos: fácil, médio, olímpico (medido em teste/h_jogadores.py)
 const DEMO=location.hash.indexOf('demo')>=0,AUTO=DEMO||location.hash.indexOf('auto')>=0;   // AUTO: o jogo aperta sozinho, só para conferência
 /* visual completo (sombra, brilho, câmera de TV) só onde tem mouse: computador. #leve desliga, #alta força */
 const ALTA=location.hash.indexOf('leve')<0&&(location.hash.indexOf('alta')>=0||!(window.matchMedia&&matchMedia('(pointer:coarse)').matches));
-const S={prova:'nado',nado:'medley',narra:true,oficial:true,modo:'dupla',nivel:1,vant:false,fase:'menu',t:0,tGo:0,nad:[],fimEm:0,som:true,vovo:true,rm:null,rm0:null,novoRM:null};
+const S={prova:'nado',nado:'medley',narra:true,oficial:false,modo:'dupla',nivel:1,vant:false,fase:'menu',t:0,tGo:0,nad:[],fimEm:0,som:true,vovo:true,rm:null,rm0:null,novoRM:null};
 
 /* as cinco provas de 100 m: quatro de um nado só e o medley (um nado por piscina) */
 const VOO=3.3;                                             // em que fração da abertura entram os closes do Thiago e do Luca
@@ -742,6 +753,10 @@ const guarda={
   poe(k,v){memG[k]=v;try{localStorage.setItem(k,v);return true}catch(e){return false}},
   tira(k){delete memG[k];try{localStorage.removeItem(k)}catch(e){}}
 };
+/* Regra oficial (saída falsa e 15 m desclassificam): DESLIGADA de fábrica, na família e no site. Quem liga nas opções fica com ela
+   ligada neste aparelho (chave própria: o "ligada" que as opções antigas guardavam era só o padrão de antes, não uma escolha).
+   #regraof liga só para conferência */
+S.oficial=guarda.le('raia-oficial')==='1'||location.hash.indexOf('regraof')>=0;
 const fmt=t=>{const m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(2)};
 /* recorde mundial: o melhor tempo já feito por um dos dois neste aparelho */
 function leRM(p){try{const o=JSON.parse(guarda.le('raia-rm-'+p)||'null');return o&&o.t>0?o:null}catch(e){return null}}
@@ -3242,53 +3257,65 @@ function parcial(n,tw){
 }
 
 /* ===== ondulação submersa. Regra da World Aquatics: depois da saída e de cada virada o nadador pode ficar submerso,
-   mas a cabeça tem de romper a superfície até a marca dos 15 m. No peito a saída é outra (uma braçada e uma pernada
-   longas): aqui vira uma fase curta, até 7 m, com o mesmo controle.
-   Controle: um chute vale quando as DUAS teclas (ou os dois botões) do jogador entram juntas, dentro de OND.jan ms.
+   mas a cabeça tem de romper a superfície até a marca dos 15 m (borboleta, costas e livre).
+   No PEITO não existe marca de distância: a saída é uma braçada longa até as pernas, UMA golfinhada e uma pernada de peito,
+   e a cabeça rompe a água antes da segunda braçada. Aqui são três toques no ritmo (PUXA, GOLFINHO, PERNADA) e o nadador sobe;
+   o peito nunca desclassifica por distância.
+   Controle: um toque só (qualquer tecla do jogador ou o botão), no ritmo; duas teclas apertadas juntas valem um chute só.
    Cadência constante rende mais que rajada; pulso lento perde o embalo e o nadador sobe sozinho.
    Campos do nadador (todos locais, nada vai para a sala): ond, ondK (chutes), ondT (hora do último), ondT0, ondIv (intervalo),
    ondR (ritmo de 0 a 1), ondSolto (toques sem par), ondAv (já avisou), ondP (hora de cada tecla), ondAte, ondFim, dsqPor ===== */
-const OND={jan:170,lim:15,limPeito:7,aviso:3,avisoPeito:1.5};
+/* margem do aviso: o "Sobe!" aparece 4 m antes da marca (aos 11 m). No peito limPeito não é regra: é só a rede de segurança
+   de quem não fez os três toques (aviso aos 7 m, sobe sozinho perto dos 9). A mais de 3 m/s isso dá mais de um segundo para reagir */
+const OND={jan:170,lim:15,limPeito:10,aviso:4,avisoPeito:3};
+const ehCrianca=n=>n.i===HL&&!SITE;                              // a raia do Luca na versão da família: primeira infração vira aviso
 S.ondFacil=true;                                                 // a ondulação é sempre de um toque só
 const ondDist=n=>n.dir>0?n.x:POOL-n.x;                         // metros desde a parede de onde saiu
 const ondLim=n=>iE(n.perna)===2?OND.limPeito:OND.lim;
-const ondAvisa=n=>ondLim(n)-(iE(n.perna)===2?OND.avisoPeito:OND.aviso);     // onde aparece o "Sobe!" (12 m)
+const ondAvisa=n=>ondLim(n)-(iE(n.perna)===2?OND.avisoPeito:OND.aviso);     // onde aparece o "Sobe!" (11 m; 7 m no peito)
 function ondEntra(n){
   if(S.prova==='jet'||n.remoto)return;
   const pe=iE(n.perna)===2;
-  n.ond=1;n.ondK=0;n.ondT=0;n.ondT0=0;n.ondIv=0;n.ondR=.5;n.ondSolto=0;n.ondAv=0;n.ondBom=0;n.ondP=[-1e9,-1e9];
-  n.ondAte=n.humano?(pe?4.6+Math.random()*.7:10.6+Math.random()*1.6):(pe?4+Math.random()*1.5:8+Math.random()*4);   // até onde vai quem ondula sozinho (bicho, ou jogador em AUTO)
+  n.ond=1;n.ondK=0;n.ondTq=undefined;n.ondT=0;n.ondT0=0;n.ondIv=0;n.ondR=.5;n.ondSolto=0;n.ondAv=0;n.ondBom=0;n.ondP=[-1e9,-1e9];
+  n.ondAte=n.humano?(pe?9+Math.random()*.6:9.8+Math.random()*1.4):(pe?4+Math.random()*1.5:8+Math.random()*4);   // até onde vai quem ondula sozinho (bicho, ou jogador em AUTO)
 }
-/* sai da ondulação. como: 'bom' (subiu por conta própria), 'lento' (perdeu o embalo), 'falta' (passou do limite) */
+/* sai da ondulação. como: 'bom' (subiu por conta própria), 'lento' (perdeu o embalo), 'so' (o jogo subiu por ele depois do aviso), 'falta' (passou do limite) */
 function ondSobe(n,como){
   if(!n.ond)return;const d=ondDist(n);n.ond=0;n.ondFim=S.t;
   n.t0=S.t+.4;n.ultB=-1;n.lado=-1;
   if(!n.humano)return;
-  if(como!=='falta'&&n.ondK>=3&&n.ondR>=.6&&d>=ondAvisa(n)-1.5){              // chegou perto do limite com a cadência firme: bônus
-    n.v=Math.max(n.v,2.95);n.turbo=clamp(n.turbo+.3,0,.99);fala(n,'Perfeito! '+Math.round(d)+' m no fundo');SOM.perfeito();estrelas(n)}
+  const pe=iE(n.perna)===2;
+  if(como!=='falta'&&como!=='so'&&n.ondK>=3&&n.ondR>=.6&&(pe||d>=ondAvisa(n)-1.5)){        // chegou perto do limite com a cadência firme (no peito: os três toques no ritmo): bônus
+    n.v=Math.max(n.v,2.95);n.turbo=clamp(n.turbo+.3,0,.99);fala(n,pe?'Perfeito! Saída de peito':'Perfeito! '+Math.round(d)+' m no fundo');SOM.perfeito();estrelas(n)}
   else if(como==='lento'&&n.ondK)fala(n,n.ondR<=0?'Perdeu o ritmo':'Perdeu o embalo');
   espirra(n.x+n.dir*.5,.05,RAIAS[n.i],8,1.8);
   trocaControle(n);
 }
-/* um chute de golfinho que valeu (as duas teclas juntas) */
+/* um chute de golfinho (um toque; o segundo dedo do mesmo aperto não conta) */
 function ondChute(n){
   if(!n.ond||n.estado!=='nadando'||n.salto>.12)return;
-  const t=S.t,iv=t-n.ondT;let g=.75,ok=1;n.ondSolto=0;
+  const t=S.t,iv=t-n.ondT,itq=t-(n.ondTq===undefined?-9:n.ondTq),pe3=iE(n.perna)===2&&n.humano;let g=.75,ok=1;
+  if(n.ondK&&itq<.12&&!n.ondPar){n.ondPar=1;n.ondTq=t;return}                                     // duas teclas apertadas juntas: o segundo dedo é o mesmo chute, sem castigo
+  n.ondPar=0;n.ondSolto=0;n.ondTq=t;
   if(n.ondK){
-    if(iv<.19){n.ondR=Math.max(0,n.ondR-.15);ondPisca(n,0);                                        // rajada: não vale e ainda quebra o ritmo
-      if(n.ondAv||n.ondR<=0)return ondSobe(n,n.ondAv?'bom':'lento');fala(n,'Calma! No ritmo');return}
-    const bom=iv>=.23&&iv<=.52,reg=n.ondIv>0?Math.abs(iv-n.ondIv)/n.ondIv:.3;
-    if(bom&&reg<.25){g=.9;n.ondR=Math.min(1,n.ondR+.17);n.ondBom++}             // no ritmo e constante
-    else if(bom){g=.7;n.ondR=Math.max(0,n.ondR-.04)}                            // no ritmo, mas irregular
-    else{g=.3;ok=0;n.ondR=Math.max(0,n.ondR-.2)}                                // rápido ou lento demais
+    if(itq<.15){n.ondR=Math.max(0,n.ondR-.1);                                                       // rajada (dedo martelando): não vale e gasta o ritmo
+      if(n.ondAv||n.ondR<=0)return ondSobe(n,n.ondAv?'bom':'lento');
+      if(t-(n.calmaT||-9)>.8){n.calmaT=t;ondPisca(n,0);fala(n,'Calma! No ritmo')}return}                // o aviso (som e vermelho) sai no máximo a cada 0,8 s
+    const bom=iv>=(pe3?.3:.2)&&iv<=(pe3?.95:.6),reg=n.ondIv>0?Math.abs(iv-n.ondIv)/n.ondIv:.3;      // janela larga: de 0,2 a 0,6 s entre os chutes (a bolinha bate a cada 0,34); na saída do peito, de 0,3 a 0,95 s (bolinha a cada 0,6: cada movimento desliza)
+    if(bom&&reg<.35){g=.9;n.ondR=Math.min(1,n.ondR+.17);n.ondBom++}             // no ritmo e constante
+    else if(bom){g=.75;n.ondR=Math.max(0,n.ondR-.02)}                           // no ritmo, mas irregular: quase igual
+    else{g=.4;ok=0;n.ondR=Math.max(0,n.ondR-.15)}                               // rápido ou lento demais: anda menos, mas anda
     n.ondIv=iv}
   n.ondT=t;n.ondK++;
-  const vant=n.i===HL&&S.vant&&!SITE,teto=(2.5+.65*n.ondR)*(vant?1.1:1);       // bem feita passa um pouco da braçada; mal feita fica abaixo
-  n.v=Math.min(Math.max(n.v,0)+g*(vant?1.25:1),Math.max(teto,n.v));
+  const vant=n.i===HL&&S.vant&&!SITE,teto=(2.5+.65*n.ondR+(pe3?.4:0))*(vant?1.1:1);       // bem feita passa um pouco da braçada; mal feita fica abaixo
+  n.v=Math.min(Math.max(n.v,0)+g*(pe3?1.6:1)*(vant?1.25:1),Math.max(teto,n.v));          // na saída do peito cada movimento (puxada, golfinhada, pernada) empurra mais e desliza
   if(ok&&g>.8)n.turbo=clamp(n.turbo+.03,0,.99);
   borbulha(n.x-n.dir*.9,-.45,RAIAS[n.i],ALTA?6:3);
   if(S.t-(n.somT||0)>.16){n.somT=S.t;SOM.agua()}
   ondPisca(n,ok?(g>.8?1:2):0);if(n.ondBom===3)fala(n,'Bom ritmo!');
+  if(iE(n.perna)===2&&n.humano){                                // saída do peito: braçada, golfinhada e pernada. No terceiro toque o nadador sobe
+    if(n.ondK>=3)return ondSobe(n,'bom');
+    if(typeof ondRotulo==='function')ondRotulo(n)}
   if(!ok&&n.ondAv)ondSobe(n,'bom');                             // perto da marca, chute fora do ritmo já é subir: ninguém é pego de surpresa
   else if(n.ondR<=0&&n.ondK>=4)ondSobe(n,'lento');              // perdeu o ritmo de vez: sobe sozinho e volta à braçada
 }
@@ -3297,25 +3324,27 @@ function ondChute(n){
 function ondAperta(n,lado){
   if(n.ondAv)return ondSobe(n,'bom');
   return ondChute(n);
-  const ag=performance.now(),o=n.ondP,eu=lado?1:0;
-  if(ag-o[1-eu]<=OND.jan){o[0]=o[1]=-1e9;return ondChute(n)}
-  o[eu]=ag;
-  if(++n.ondSolto>=(n.ondAv?3:6)){                             // está alternando as teclas: quer nadar. Sobe e volta à braçada
-    ondSobe(n,'bom');if(ES(n).tipo==='alt')aperta(n.i,lado)}
 }
 function ondPasso(n,dt){
-  const d=ondDist(n),lim=ondLim(n);
+  const d=ondDist(n),lim=ondLim(n),of=S.oficial&&iE(n.perna)!==2;   // a regra de distância não existe no peito
   if(!n.humano){if(d>=n.ondAte)ondSobe(n);return}              // bicho: ondula sozinho de 8 a 12 m, sem falta
   if(n.salto>.12)return;
   if(!n.ondT0)n.ondT0=S.t;
-  if(AUTO){if(d>=n.ondAte)return ondSobe(n,'bom');if(S.t-n.ondT>=.3)ondChute(n)}                 // conferência: chuta sozinho, com cadência boa
-  else if(n.ondK?S.t-n.ondT>.8:S.t-n.ondT0>1.8)return ondSobe(n,'lento');                      // pulso lento: perde o embalo e sobe
-  if(!n.ondAv&&d>=ondAvisa(n)){n.ondAv=1;fala(n,'Sobe!');popTexto(n,'Sobe!','#FF5A4E');SOM.bom();treme(30)}
-  if(d>=lim){                                                  // passou da marca submerso: falta
-    const pe=iE(n.perna)===2;
-    if(S.oficial){n.dsq=true;n.dsqPor='15m';ondSobe(n,'falta');fala(n,pe?'Ficou demais no fundo!':'Passou dos 15 m!');SOM.erro();
-      narra(n.nome+(pe?' ficou tempo demais submerso':' passou dos quinze metros submerso')+'. Desclassificado!',2,'quinze')}
-    else{n.v*=.55;ondSobe(n,'falta');fala(n,pe?'Demorou! Subiu à força':'Passou dos 15 m! Subiu à força');SOM.erro()}
+  if(AUTO){if(d>=n.ondAte)return ondSobe(n,'bom');if(S.t-n.ondT>=(iE(n.perna)===2?.6:.3))ondChute(n)}                 // conferência: chuta sozinho, com cadência boa
+  else if(!(of&&n.ondAv)&&(n.ondK?S.t-n.ondT>(iE(n.perna)===2?1.4:1):S.t-n.ondT0>2.2))return ondSobe(n,'lento');   // pulso lento: perde o embalo e sobe (com a regra oficial, depois do aviso, subir é com o jogador)
+  const av=ondAvisa(n);
+  if(!n.ondAv&&d>=av){n.ondAv=1;fala(n,'Sobe! Toque agora');popTexto(n,'Sobe!','#FF5A4E');SOM.bom();treme(30)}
+  /* O CUIDADO DA DESCLASSIFICAÇÃO nos 15 m (borboleta, costas e livre; no peito não há marca, vale sempre o caminho sem regra).
+     Sem a regra oficial ninguém chega à marca: passado o aviso, se o toque não vem, o nadador sobe sozinho com 40% da margem
+     ainda sobrando e só perde um pouco de embalo. Distração não desclassifica.
+     Com a regra oficial: quem passa da marca é desclassificado; para a criança, a primeira vez na prova vira aviso (sobe à força,
+     perde embalo) e só a segunda desclassifica */
+  if(!of){
+    if(d>=av+(lim-av)*.6){n.v*=.9;n.subiuSo=(n.subiuSo||0)+1;ondSobe(n,'so');fala(n,'Subiu sozinho · toque no Sobe!');popTexto(n,'Subiu sozinho','#FFC83D');return}}
+  else if(d>=lim){
+    if(ehCrianca(n)&&!n.av15){n.av15=1;n.v*=.8;ondSobe(n,'so');fala(n,'Aviso! Toque no Sobe!');popTexto(n,'Aviso: suba antes da marca!','#FFC83D');sinal(n,'a');SOM.bom();treme(40);return}
+    n.dsq=true;n.dsqPor='15m';ondSobe(n,'falta');fala(n,'Passou dos 15 m!');popTexto(n,'Desclassificado','#FF5A4E');SOM.erro();
+    narra(n.nome+' passou dos quinze metros submerso. Desclassificado!',2,'quinze');
     return}
   ondTela(n,d,lim);
 }
@@ -3324,8 +3353,22 @@ function mergulha(n){
   n.estado='nadando';n.salto=.55;n.v=3;n.t0=S.t+.8;n.ultB=-1;n.lado=-1;ondEntra(n);
   if(n.humano){SOM.mergulho();trocaControle(n);if(!n.remoto)S.treme=.45}
 }
+/* ===== todos os caminhos que punem ou desclassificam, num lugar só (para a tela de resultado explicar em uma frase).
+   1 saída falsa (antes do sinal)   2 submerso além dos 15 m (borboleta, costas e livre; no peito não há marca)   3 sumiu da sala entre aparelhos (b10, 8 s sem sinal)
+   Perdas pequenas, sem desclassificar: 2ª saída falsa sem a regra oficial (segura 0,5 s no bloco), motor afogado no jet ski (0,8 s),
+   subir sozinho depois do aviso (10% do embalo), toque fora do tempo (anda 80% do Bom naquela braçada).
+   Ninguém fica parado: quem queimou pula sozinho quando a pena acaba se já tocou; quem não tocou em 7 s pula sozinho; 5 s sem toque, 1,2 m/s ===== */
+const DSQTXT={saida:['saída falsa','Saiu antes do sinal. Na próxima, espere o botão ficar verde.'],
+  '15m':['submerso além dos 15 m','Passou dos 15 m debaixo d’água. Na próxima, toque quando aparecer “Sobe!”.'],
+  sala:['saiu da prova','O aparelho perdeu a conexão no meio da prova. É só entrar de novo na sala.']};
+const dsqDe=n=>DSQTXT[n.saiu?'sala':n.dsqPor==='15m'?'15m':'saida'];
 function aperta(i,lado){
-  if(S.prova==='jet')return apertaJet(i,lado);
+  if(S.prova==='jet'){                                          // jet ski: o primeiro toque antes do sinal é só aviso; o segundo afoga o motor (regra do a5j)
+    const j=S.nad.find(o=>o.i===i);
+    if(j&&j.humano&&!j.remoto&&S.fase==='marcas'&&S.marcou>1&&!j.queimou){
+      if(j.avisoLarg&&S.t-j.avisoLarg<.6)return;
+      if(!j.avisoLarg){j.avisoLarg=S.t;fala(j,'Espera o sinal!');sinal(j,'a');SOM.bom();treme(20);return}}
+    return apertaJet(i,lado)}
   const n=S.nad[i];if(!n||!n.humano||n.remoto)return;
   if(S.fase==='marcas'&&S.t<(S.ti||0)){S.t=S.ti;return}        // qualquer toque pula a apresentação
   if(S.fase==='marcas'&&n.estado==='bloco'){                    // artigo 4.4: quem sai antes do sinal é desclassificado e a prova segue
@@ -3336,41 +3379,63 @@ function aperta(i,lado){
       if(n.avisoLarg&&S.t-n.avisoLarg<.6)return;                   // dedo nervoso logo depois do aviso não conta como a segunda
       if(!n.avisoLarg){n.avisoLarg=S.t;fala(n,'Espera o sinal!');popTexto(n,'Espera o sinal!','#FFC83D');sinal(n,'a');SOM.bom();treme(20);return}}
     n.queimou=true;
-    if(S.oficial){n.dsq=true;n.rt=S.t-S.tGo;mergulha(n);fala(n,'Saída falsa!');SOM.erro();narra(n.nome+' queimou a largada!',2,'queimou')}
-    else{n.pen=.6;fala(n,'Queimou a largada!');SOM.erro()}
+    if(S.oficial){n.dsq=true;n.dsqPor='saida';n.rt=S.t-S.tGo;mergulha(n);fala(n,'Saída falsa!');popTexto(n,'Saída falsa · desclassificado','#FF5A4E');SOM.erro();narra(n.nome+' queimou a largada!',2,'queimou')}
+    else{n.pen=.5;fala(n,'Queimou! Espera meio segundo');popTexto(n,'Queimou! Espera meio segundo','#FF5A4E');SOM.erro()}                 // sem a regra oficial: perda pequena, nunca desclassifica
     return}
   if(S.fase!=='prova'&&S.fase!=='chegada'&&S.fase!=='marcas')return;
   const tr=S.t-S.tGo;
-  if(n.estado==='bloco'){if(tr>=n.pen){n.rt=tr+.17;mergulha(n);fala(n,(tr-n.pen<.25?'Saída relâmpago! ':'')+'RT '+n.rt.toFixed(2))}return}
+  if(n.estado==='bloco'){if(tr>=n.pen){n.rt=tr+.17;mergulha(n);fala(n,(tr-n.pen<.25?'Saída relâmpago! ':'')+'RT '+n.rt.toFixed(2))}
+    else if(tr>=0)n.querPular=1;                                 // tocou no sinal ainda cumprindo o meio segundo: pula sozinho quando a pena acabar
+    return}
   if(n.estado!=='nadando'||n.salto>.12)return;
-  if(n.ond)return ondAperta(n,lado);                            // submerso: vale o chute com as duas teclas
+  n.toqT=S.t;                                                   // hora do último toque (quem larga o teclado não fica parado)
+  if(n.ond)return ondAperta(n,lado);                            // submerso: cada toque é um chute
   if(n.vira)return viraToque(n);                                // perto da parede: o toque é a virada (ou o toque final)
   const e=ES(n),z=RAIAS[n.i];let ganho=0,tb=0,txt='';
   if(e.tipo==='tempo'){
-    const k=Math.round((S.t-n.t0)/e.per),d=Math.abs(S.t-(n.t0+k*e.per));
-    if(k<0||k<=n.ultB){ganho=.08;tb=-.1;n.combo=0;txt='Calma!';SOM.erro();sinal(n,'r')}
-    else{n.ultB=k;
-      if(d<=.085){ganho=1.45;tb=.12;n.combo++;txt=n.combo>1?'Perfeito x'+n.combo:'Perfeito!';SOM.perfeito();sinal(n,'v')}
-      else if(d<=.19){ganho=1;tb=.05;n.combo=0;txt='Bom';SOM.bom();sinal(n,'a')}
-      else{ganho=.08;tb=-.1;n.combo=0;txt='Fora do tempo';SOM.erro();sinal(n,'r')}
-      if(ganho>.5)espirra(n.x+n.dir*.7,.05,z,7,1.8);if(ganho>1.2)estrelas(n);
-    }
+    /* borboleta e peito: um toque por braçada, quando o anel fecha. Regra de ouro: quem toca mais ou menos no tempo anda bem (Bom),
+       quem acerta em cheio anda um pouco melhor (Perfeito), e ninguém perde tudo por errar (cedo ou tarde ainda anda um pouco).
+       O compasso acompanha o jogador: cada toque que vale puxa o anel metade do caminho para perto do dedo dele, então quem toca
+       sempre um pouco antes ou um pouco depois (até a janela do Bom), no mesmo ritmo, acaba no Perfeito. Fora da janela (Cedo!/Tarde!)
+       a braçada anda 80% do Bom e a seguinte vale cheia. Duas teclas apertadas juntas valem um toque só. Só martelar é que não rende. */
+    const dq=S.t-(n.tqT===undefined?-9:n.tqT),perf=()=>{ganho=e.gp;tb=.12;n.combo++;txt=n.combo>1?'Perfeito x'+n.combo:'Perfeito!';SOM.perfeito();sinal(n,'v')};
+    if(dq<.12&&!n.tqPar){n.tqPar=1;n.tqT=S.t;return}              // duas teclas apertadas juntas (o gesto natural da borboleta e do peito): o segundo dedo é o mesmo toque
+    n.tqPar=0;n.tqT=S.t;
+    if(n.ultB<0){                                               // primeira braçada depois de subir, de virar ou de trocar de nado: nunca sai punida, e é ela que marca o compasso
+      const cedo=S.t<n.t0-e.jp;n.t0=S.t;n.ultB=0;n.sujo=0;        // anel verde aceso (fica aceso esperando) = Perfeito; antes de o anel fechar = Bom
+      if(!cedo)perf();else{ganho=e.gb;tb=.05;n.combo=0;txt='Bom';SOM.bom();sinal(n,'a')}}
+    else{
+      const k=Math.round((S.t-n.t0)/e.per),err=S.t-(n.t0+k*e.per),d=Math.abs(err);
+      if(dq<e.per*.33||k<=n.ultB){tb=-.04;n.combo=0;n.sujo=1;                                                    // dedo martelando: não vale, mas também não freia
+        if(S.t-(n.calmaT||-9)>.8){n.calmaT=S.t;txt='Calma! Um toque só';SOM.erro();sinal(n,'r')}}                 // o aviso (som e vermelho) sai no máximo a cada 0,8 s
+      else if(d<=e.jb){n.ultB=k;n.t0+=err*.5;
+        if(d<=e.jp&&!n.sujo)perf();
+        else{ganho=e.gb*(n.sujo?.6:1);tb=n.sujo?.02:.05;n.combo=0;txt='Bom';SOM.bom();sinal(n,'a')}
+        n.sujo=0}
+      else{ganho=e.gb*.8;n.combo=0;n.sujo=0;txt=err<0?'Cedo! Espera o verde':'Tarde! Toque no verde';SOM.erro();sinal(n,'r')}}   // fora da janela: anda 80% do Bom (mais que martelar), não queima a braçada e não suja a seguinte
+    if(ganho>.5)espirra(n.x+n.dir*.7,.05,z,7,1.8);if(ganho>=e.gp)estrelas(n);
   }else{
-    /* livre e costas no ritmo: alternar num ritmo bom (de ~0,22 a ~0,5 s entre toques) já leva à velocidade máxima;
-       mais rápido que isso não rende mais (não precisa correr com o dedo); mais lento, o nadador desliza e perde um pouco.
-       Toque nunca tira velocidade. Cada toque também anda meia braçada do boneco (n.phAlvo), e b3 acende o braço da vez */
+    /* livre e costas: um braço de cada vez, na cadência do nado (o botão da vez enche e acende na hora boa). Dentro da faixa
+       confortável (iv0 a iv1) rende a velocidade cheia; correr com o dedo rende um pouco MENOS (braçada curta), devagar demais
+       o nadador desliza. Toque nunca tira velocidade. Cada toque anda meia braçada do boneco (n.phAlvo) e b3 acende o braço da vez.
+       A primeira braçada (saiu do fundo, virou, trocou de nado ou voltou de uma parada) vale cheia. */
     if(lado!==n.lado){
-      const iv=S.t-(n.altT===undefined?-9:n.altT),noRitmo=iv>=.2&&iv<=.52;n.altT=S.t;n.lado=lado;
-      n.altQ=iv<=.52?1:clamp(.52/iv,.55,1);                        // qualidade da cadência: 1 no ritmo (ou mais rápido), cai devagar quando fica lento
-      ganho=-1;tb=noRitmo?.03:.012;sinal(n,noRitmo||iv>2?'v':'a');espirra(n.x+n.dir*.6,.05,z+(lado?-.35:.35),2,1.4);
+      const prim=n.lado<0,iv=S.t-(n.altT===undefined?-9:n.altT);n.altT=S.t;n.lado=lado;
+      let q=1,cor='v';
+      if(prim||iv>2.5){}
+      else if(iv<e.iv0){q=iv<e.iv0*.62?.75:.88;cor='a';if(S.t-(n.devT||-9)>1.6){n.devT=S.t;txt='Mais devagar! Braçada longa'}}   // martelando: 75%; só um pouco apressado: 88%
+      else if(iv>e.iv1){q=clamp(e.iv1/iv,.6,1);cor='a'}
+      n.altQ=prim?1:lerp(n.altQ===undefined?1:n.altQ,q,.6);       // qualidade da cadência, suavizada: um toque fora não derruba
+      ganho=-1;tb=cor==='v'&&!prim?.03:cor==='a'&&iv<e.iv0?0:.01;sinal(n,cor);espirra(n.x+n.dir*.6,.05,z+(lado?-.35:.35),2,1.4);
       const b=Math.max(n.phAlvo===undefined?n.ph:n.phAlvo,n.ph);n.phAlvo=Math.min(Math.floor(b*2+1e-6)/2+.5,n.ph+1);
       if(S.t-(n.somT||0)>.16){n.somT=S.t;SOM.agua()}}
-    else{ganho=.06;txt='Alterne!';sinal(n,'r')}
+    else if(S.t-(n.calmaT||-9)>.8){n.calmaT=S.t;txt='Alterne! Outro braço';sinal(n,'r')}
   }
   const vant=(n.i===HL&&S.vant&&!SITE),emTurbo=n.turboT>0;
-  const teto=(e.cap||2.75)*(emTurbo?1.25:1)*(vant?1.1:1);
+  const teto=e.cap*(emTurbo?1.25:1)*(vant?1.1:1);
   if(ganho<0){const alvo=teto*n.altQ;if(n.v<alvo)n.v+=(alvo-n.v)*(emTurbo?.7:.55)}  // puxa para a velocidade do ritmo; nunca freia
-  else n.v=Math.min(Math.max(n.v,0)+ganho*(emTurbo?1.35:1)*(vant?1.25:1),Math.max(teto,n.v));
+  else if(ganho>0)n.v=Math.min(Math.max(n.v,0)+ganho*(emTurbo?1.35:1)*(vant?1.25:1),Math.max(teto,n.v));
+  n.v=Math.max(n.v,e.vm*.6);                                    // qualquer toque, mesmo errado, garante 60% da velocidade do nado: ninguém fica parado nem perde tudo
   n.turbo=clamp(n.turbo+tb,0,1);
   if(n.turbo>=1&&!emTurbo){n.turbo=0;n.turboT=2.2;txt='TURBO!';SOM.turbo();agita(.35);grita(n.i);espirra(n.x,.1,z,16,2.4);estouro(n.x,.2,z,18)}
   if(txt)fala(n,txt);
@@ -3406,7 +3471,7 @@ function viraToque(n){
   if(!n.vira||n.viraTent)return;n.viraTent=1;
   const ult=n.perna===NPERNAS-1;
   if(viraResta(n)<=VIRA.jan){n.viraOk=1;sinal(n,'v');SOM.bom();
-    if(ult){n.v=Math.max(n.v,(ES(n).cap||2.75)*1.08);fala(n,'Toque perfeito!');popTexto(n,'Toque perfeito!','#5FD38D')}   // estica e bate na parede
+    if(ult){n.v=Math.max(n.v,ES(n).cap*1.08);fala(n,'Toque perfeito!');popTexto(n,'Toque perfeito!','#5FD38D')}   // estica e bate na parede
     else fala(n,'Boa!')}
   else{sinal(n,'a');fala(n,'Cedo! Espera o verde')}
   if(typeof viraTela==='function')viraTela(n,viraResta(n));
@@ -3417,6 +3482,10 @@ function nada(n,dt){
   if(n.estado==='bloco'){
     if(!n.humano){if(tr>=n.reac){n.rt=n.reac+.17;mergulha(n)}}
     else if(AUTO&&tr>=n.reac)aperta(n.i,0);
+    else if(!n.remoto&&tr>=0){
+      if(n.semV!=='pula'&&typeof semaforo==='function')semaforo();                    // quem queimou vê o botão vermelho até a pena acabar
+      if(n.querPular&&tr>=n.pen)aperta(n.i,0);                                       // já tinha tocado no sinal: sai assim que pode
+      else if(tr>=Math.max(7,(n.pen||0)+1)){aperta(n.i,0);if(n.estado!=='bloco'){fala(n,'Pulou sozinho · toque no verde');popTexto(n,'Pulou sozinho','#FFC83D')}}}   // largou o teclado: a prova não fica esperando
     return;
   }
   if(n.estado==='fim'){n.v=0;return}
@@ -3427,10 +3496,14 @@ function nada(n,dt){
   if(n.humano){
     if(AUTO&&n.salto<=0&&!n.ond&&!n.vira){
       if(e.tipo==='tempo'){const k=Math.floor((S.t-n.t0)/e.per);if(k>n.ultB&&k>=0)aperta(n.i,0)}
-      else{n.bot-=dt;if(n.bot<=0){n.bot=n.i===HL?.3:.26;aperta(n.i,n.lado===0?1:0)}}       // conferência: alterna no ritmo bom
+      else{n.bot-=dt;if(n.bot<=0){n.bot=e.ivI*(n.i===HL?1.1:1);aperta(n.i,n.lado===0?1:0)}}       // conferência: alterna na cadência do nado
     }
-    const noRitmo=e.tipo==='alt'&&!n.ond&&S.t-(n.altT||-9)<.56;
-    if(!n.vira)n.v*=Math.exp(-(noRitmo?.12:.9)*dt);             // no ritmo o nadador quase não perde embalo; na zona da virada desliza até a parede
+    /* perda de embalo entre os toques: submerso .9/s; borboleta e peito, a do nado (o peito desliza mais); livre e costas quase nada
+       enquanto a cadência segue, e .7/s quando o jogador para. Na zona da virada desliza até a parede. Piso de 0,5 m/s: ninguém fica parado;
+       depois de 5 s sem nenhum toque (largou o teclado) o piso sobe para 1,2 m/s, para a prova de todo mundo acabar */
+    const noRitmo=e.tipo==='alt'&&!n.ond&&S.t-(n.altT||-9)<e.iv1+.08;
+    if(!n.vira)n.v*=Math.exp(-(n.ond?.9:e.tipo==='tempo'?e.dec:noRitmo?.12:.7)*dt);
+    if(n.salto<=0&&!VIRAFOTO)n.v=Math.max(n.v,!n.ond&&S.t-(n.toqT||S.tGo)>5?1.2:.5);
   }else{
     const el=clamp((S.dH-distancia(n))/14,-1,1);          // elástico leve: ninguém some na frente nem fica para trás
     const alvo=n.base*e.cpu*(1+.06*Math.sin(S.t*.7+n.ruido))*(1+.07*el)*(n.ond?1.05:1);
@@ -3439,6 +3512,7 @@ function nada(n,dt){
   if(e.tipo==='tempo')n.ph=(S.t-n.t0)/e.per+.3;
   else if(n.humano&&n.phAlvo!==undefined&&!n.ond&&!n.vira){                 // livre e costas do jogador: cada toque anda meia braçada
     if(n.phAlvo<n.ph-.01)n.phAlvo=n.ph;n.ph+=(n.phAlvo-n.ph)*(1-Math.exp(-dt*13))}
+  else if(!n.humano&&!n.ond)n.ph+=dt*clamp(n.v/e.cap,.6,1.3)*.5/e.ivI;        // bicho no livre e no costas: mesma cadência do guia do jogador (um ciclo = dois braços)
   else n.ph+=dt*(.45+n.v*.6);
   n.x+=n.dir*n.v*equilibrio(n)*dt;
   if(n.humano&&viva&&n.salto<=0&&!n.ond)viraZona(n);
@@ -3465,7 +3539,7 @@ function nada(n,dt){
 }
 function chegou(n){
   if(n.dsq){                                                   // desclassificado: completa a prova, mas não entra na classificação nem vale recorde
-    n.parc.push(n.tFim);espirra(n.x,.1,zDe(n),18,2.6);trocaControle(n);fala(n,n.dsqPor==='15m'?'Desclassificado · submerso além da marca':'Desclassificado · saída falsa');
+    n.parc.push(n.tFim);espirra(n.x,.1,zDe(n),18,2.6);trocaControle(n);fala(n,'Desclassificado · '+dsqDe(n)[0]);
     if(S.nad.every(o=>!o.humano||o.estado==='fim')){S.fase='chegada';S.fimEm=S.t+2}
     return}
   n.pos=++S.chegaram;if(!S.campeao)S.campeao=n;n.parc.push(n.tFim);
@@ -3784,6 +3858,26 @@ function avisaRM(txt,cls){
   '@keyframes sinal{0%{box-shadow:0 0 0 3px var(--sc),0 0 34px 6px var(--sc),inset 0 0 60px var(--sc)}100%{box-shadow:0 0 0 0 transparent,0 0 0 0 transparent,inset 0 0 0 transparent}}'+
   '.ondm.meio{animation:ondmeio .3s ease-out}@keyframes ondmeio{0%{background:#FFC83D;border-color:#FFC83D}100%{background:#04121f66}}'+
   '@media (prefers-reduced-motion:reduce){.pad.sv,.pad.sa,.pad.sr{animation-duration:.6s}}';document.head.appendChild(st)})();
+/* guia do ritmo. Borboleta e peito: o anel fecha no alvo e fica verde na hora do toque (é a puxada do boneco).
+   Livre e costas: o botão do próximo braço enche de baixo para cima e acende quando é a hora boa de tocar */
+(function(){const st=document.createElement('style');st.textContent=
+  '.beat.agora .ring{border-color:#5FD38D;border-width:6px}.beat.agora .alvo{box-shadow:0 0 0 4px #5FD38D,0 0 22px 4px #5FD38D99}'+
+  '.bt.enche:not(.vez){background:linear-gradient(to top,color-mix(in srgb,var(--cor) 50%,#0000) calc(var(--p,0)*100%),color-mix(in srgb,var(--cor) 12%,#0000) 0)}'+
+  '.bt.enche.vez{box-shadow:0 0 0 3px #5FD38D,0 0 20px 2px #5FD38D88}'+
+  /* a frase que explica o erro: maior, inteira dentro do pad e 1,4 s na tela (antes sumia em meio segundo) */
+  '.fb{max-width:calc(100% - 20px);box-sizing:border-box;background:#04121fd9;padding:1px 7px;border-radius:8px;z-index:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px;transform-origin:right center}'+
+  '.fb.pop{animation:pop2 1.4s ease-out}'+
+  '@keyframes pop2{0%{opacity:1;transform:translateY(5px) scale(.85)}10%{transform:translateY(0) scale(1.1)}20%{transform:none}72%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}'+
+  '.bt.ond.pe3{flex:1.05;font-size:clamp(12px,1.7vw,17px);letter-spacing:.02em}#pads.n4 .bt.ond.pe3,#pads.n3 .bt.ond.pe3{font-size:11px}.bt.ond.pe3+.ondm .ritmo i{animation-duration:.6s}';
+  document.head.appendChild(st)})();
+/* regra oficial: a escolha fica numa chave própria (ver a1); a caixinha das opções é ligada em a6c */
+(function(){const c=$('#oficialOn');if(c)c.addEventListener('change',()=>guarda.poe('raia-oficial',c.checked?'1':'0'))})();
+/* o texto de como jogar da natação acompanha as regras de agora (o parágrafo mora em corpo.html; ao juntar as frentes, levar este texto para lá) */
+(function(){const p=$('#comoNado');if(p)p.innerHTML='<b>Largada como na competição:</b> apitos curtos, apito longo para subir no bloco, “take your marks” e o sinal. '
+  +'Só aperte quando o botão ficar verde: quem sai antes leva um aviso (com a regra oficial ligada, é desclassificado). No nado costas a saída é de dentro da água. '
+  +'<b>Cada nado tem o seu tempo.</b> Borboleta e peito: um toque por braçada, quando o anel fechar e ficar verde (o peito é mais lento e desliza). '
+  +'Costas e livre: um braço de cada vez, sem correr, quando o botão encher. Debaixo d’água, um toque por chute e suba no “Sobe!”; '
+  +'na saída do peito são três toques: puxa, golfinho, pernada. Acertou em sequência, enche o turbo. A linha dourada na água é o recorde mundial.'})();
 const SINC={v:[.37,.83,.55],a:[1,.78,.24],r:[1,.35,.31]};
 function sinal(n,q){                                      // q: 'v' acertou, 'a' quase, 'r' errou
   if(!n||n.remoto)return;const ag=performance.now();
@@ -3796,9 +3890,14 @@ const TOQUE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 const ondTeclas=n=>S.nad.filter(o=>o.humano&&!o.remoto).length===1?['←','→']:({3:['A','D'],4:['←','→'],2:['J','L'],5:['F','H'],1:['A','D']}[n.i]||['←','→']);
 /* pisca o miolo do pad: verde quando o chute valeu, vermelho quando saiu fora do ritmo */
 function ondPisca(n,ok){sinal(n,ok===2?'a':ok?'v':'r');const m=n.ondM;if(!m)return;m.classList.remove('ok','ruim','meio');void m.offsetWidth;m.classList.add(ok===2?'meio':ok?'ok':'ruim');if(ok===1)treme(8)}
+/* saída do peito: o botão diz qual é o próximo dos três movimentos */
+const PEITO3=['PUXA','GOLFINHO','PERNADA'];
+function ondRotulo(n){if(n.tipoCtl==='ond'&&n.bts&&n.bts[0]&&!n.ondSobeV)n.bts[0].textContent=PEITO3[Math.min(n.ondK||0,2)]}
 /* barra dos metros submersos e o alerta de subir */
 function ondTela(n,d,lim){if(!n.ondBar)return;n.ondBar.style.width=(clamp(d/lim,0,1)*100).toFixed(1)+'%';
-  const av=d>=ondAvisa(n);if(av!==!!n.ondSobeV){n.ondSobeV=av;n.pad.classList.toggle('sobe',av);if(av&&n.ondTxt)n.ondTxt.textContent='SOBE!'}}
+  const av=d>=ondAvisa(n);if(av!==!!n.ondSobeV){n.ondSobeV=av;n.pad.classList.toggle('sobe',av);
+    if(av&&n.ondTxt){n.ondTxt.textContent='SOBE!';const r=n.ondM&&n.ondM.querySelector('.ritmo');          // no aviso o pad diz só o que fazer agora
+      if(r&&r.lastChild)r.lastChild.textContent='toque uma vez para subir';if(n.bts&&n.bts[0])n.bts[0].textContent='SUBIR'}}}
 
 /* ---------- largada com semáforo: o botão só fica verde no sinal. Cinza ESPERA até o "take your marks", vermelho PARADO até o sinal,
    verde PULAR! (no costas, IMPULSO!) no sinal. Nada aceso chamando o dedo antes da hora. O teclado segue as mesmas regras ---------- */
@@ -3821,8 +3920,9 @@ function ondTela(n,d,lim){if(!n.ondBar)return;n.ondBar.style.width=(clamp(d/lim,
   document.head.appendChild(st)})();
 const SEMFIXO=(location.hash.match(/sem(espera|parado|pula)/)||[])[1];          // só para conferência: #sempula congela o botão naquela cor
 function semaforo(){
-  const st=SEMFIXO||(S.fase==='marcas'?(S.marcou<4||S.t<(S.ti||0)?'espera':'parado'):'pula'),cst=S.prova!=='jet'&&iE(0)===1;
+  const st0=SEMFIXO||(S.fase==='marcas'?(S.marcou<4||S.t<(S.ti||0)?'espera':'parado'):'pula'),cst=S.prova!=='jet'&&iE(0)===1;
   S.nad.forEach(n=>{
+    const st=st0==='pula'&&!SEMFIXO&&n.queimou&&S.t-S.tGo<(n.pen||0)?'parado':st0;          // quem queimou cumpre o meio segundo com o botão vermelho
     if(n.tipoCtl!=='pula'||!n.bts||!n.bts[0]||n.semV===st)return;n.semV=st;const b=n.bts[0];
     b.classList.remove('sem-espera','sem-parado','sem-pula');b.classList.add('sem-'+st);
     b.querySelector('.semt').textContent=st==='espera'?'ESPERA':st==='parado'?'PARADO':cst?'IMPULSO!':'PULAR!';
@@ -3855,16 +3955,15 @@ function trocaControle(n){
   n.ondM=n.ondBar=n.ondTxt=null;n.ondSobeV=false;n.pad.classList.remove('sobe');n.semV=null;n.viraV=null;
   if(tipo==='pula')c.innerHTML='<button class="bt sem" data-l="0"><span class="sem3"><i></i><i></i><i></i></span><span class="semt"></span></button>';
   else if(tipo==='vira')c.innerHTML='<button class="beat vira" data-l="0"><span class="alvo">'+(n.perna===NPERNAS-1?'TOCA!':'VIRA!')+'</span><span class="ring"></span></button>';
-  else if(tipo==='ond'){                                          // submerso: as duas teclas juntas (no toque, os dois botões acesos); no modo fácil, um botão só
+  else if(tipo==='ond'){                                          // submerso: um botão só, um toque por chute. No peito são três toques: braçada, golfinhada e pernada
     const k=ondTeclas(n),lim=ondLim(n),pe=iE(n.perna)===2,solo=S.nad.filter(o=>o.humano&&!o.remoto).length===1;
-    const meio='<div class="ondm"><b>'+(TOQUE?'Toque o botão no ritmo':'Toque '+k[0]+' ou '+k[1]+' no ritmo')+'</b><em class="ritmo"><i></i>várias vezes · toc toc toc · não segure</em><div class="ondb"><i></i><u style="left:'+(ondAvisa(n)/lim*100).toFixed(0)+'%"></u></div>'
-      +'<small>'+(pe?'saída do peito · sobe antes dos '+lim+' m':(solo&&!TOQUE?'ou espaço · ':'')+'sobe antes dos '+lim+' m')+'</small></div>';
-    c.innerHTML=true?'<button class="bt ond vez" data-l="0">CHUTE</button>'+meio
-      :'<button class="bt ond vez" data-l="0">'+(TOQUE?'●':k[0])+'</button>'+meio+'<button class="bt ond vez" data-l="1">'+(TOQUE?'●':k[1])+'</button>';
+    const meio='<div class="ondm"><b>'+(pe?'Saída do peito: 3 toques no ritmo':TOQUE?'Toque o botão no ritmo':'Toque '+k[0]+' ou '+k[1]+' no ritmo')+'</b><em class="ritmo"><i></i>'+(pe?'puxa · golfinho · pernada':'várias vezes · toc toc toc · não segure')+'</em><div class="ondb"><i></i><u style="left:'+(ondAvisa(n)/lim*100).toFixed(0)+'%"></u></div>'
+      +'<small>'+(pe?'braçada longa, uma golfinhada e uma pernada':(solo&&!TOQUE?'ou espaço · ':'')+'sobe antes dos '+lim+' m')+'</small></div>';
+    c.innerHTML='<button class="bt ond vez'+(pe?' pe3':'')+'" data-l="0">'+(pe?PEITO3[0]:'CHUTE')+'</button>'+meio;
     n.ondM=c.querySelector('.ondm');n.ondBar=c.querySelector('.ondb i');n.ondTxt=c.querySelector('.ondm b')}
   else if(tipo==='tempo')c.innerHTML='<button class="beat" data-l="0" style="overflow:hidden"><span class="alvo">JÁ</span><span class="ring"></span></button>';
   else if(tipo==='jet')c.innerHTML='<button class="bt jet" data-l="0" aria-label="Faixa da esquerda">◀</button><button class="bt jet" data-l="1" aria-label="Faixa da direita">▶</button>';
-  else if(tipo==='alt')c.innerHTML='<button class="bt" data-l="0">ESQ</button><button class="bt" data-l="1">DIR</button>';
+  else if(tipo==='alt')c.innerHTML='<button class="bt enche" data-l="0">ESQ</button><button class="bt enche" data-l="1">DIR</button>';
   else c.innerHTML='<div class="beat"><span class="alvo">'+(n.dsq?'DSQ':n.pos+'º')+'</span></div>';
   n.tipoCtl=tipo;n.ring=c.querySelector('.ring');n.bts=[...c.querySelectorAll('.bt')];
   if(tipo==='pula')semaforo();else if(tipo==='vira')viraTela(n,viraResta(n));
@@ -3917,7 +4016,10 @@ function pinta(){
     if(n.tipoCtl==='tempo'&&n.ring){
       const f=(S.t-n.t0)/ES(n).per,falta=f<0?Math.min(1,-f):1-(f-Math.floor(f));
       n.ring.style.transform='scale('+(1+1.6*falta).toFixed(3)+')';n.ring.style.opacity=(1-.6*falta).toFixed(2);
-    }else if(n.tipoCtl==='alt')n.bts.forEach(b=>b.classList.toggle('vez',+b.dataset.l!==n.lado));
+      const e=ES(n),er=f-Math.round(f),ag=n.ultB<0?f*e.per>=-e.jp:Math.abs(er)*e.per<=e.jp+.03;       // verde = o toque agora vale Perfeito (na primeira braçada fica aceso esperando, igual à regra em a5)
+      if(ag!==n.agV){n.agV=ag;n.ring.parentNode.classList.toggle('agora',ag)}
+    }else if(n.tipoCtl==='alt'){const e=ES(n),iv=S.t-(n.altT===undefined?-9:n.altT),p=clamp(iv/(e.ivI*.9),0,1).toFixed(2);
+      n.bts.forEach(b=>{const prox=+b.dataset.l!==n.lado;b.classList.toggle('vez',prox&&(n.lado<0||iv>=e.iv0));b.style.setProperty('--p',prox?p:0)})}
   });
 }
 
@@ -3928,14 +4030,15 @@ function mostraFim(ordem){
   $('#fimRM').textContent=r?'Recorde mundial: '+fmt(r.t)+' · '+r.nome:'';
   /* uma frase de incentivo para quem jogou sozinho neste aparelho: o jogo é para a criança querer voltar para a piscina */
   const meus=ordem.filter(n=>n.humano&&!n.remoto),eu=meus.length===1?meus[0]:null,fm=$('#fimMsg');
-  if(fm)fm.textContent=!eu?'':eu.dsq?(eu.dsqPor==='15m'?'Passou da marca debaixo d\'água. Sobe no aviso e vai de novo!':'Queimou a largada. Espera o sinal e vai de novo!'):rm===eu?'Você entrou para a história desta piscina!'
+  const dq=meus.filter(n=>n.dsq);                              // desclassificado: uma frase simples dizendo o que houve e como evitar, e o convite para a revanche
+  if(fm)fm.textContent=dq.length?dq.map(n=>(meus.length>1?n.nome+': ':'')+dsqDe(n)[1]).join(' ')+' Bora a revanche?':!eu?'':rm===eu?'Você entrou para a história desta piscina!'
     :eu.pos===1?'Que prova! Será que dá para baixar esse tempo?'
     :['Cada treino deixa você mais rápido. Bora de novo?','Campeão é quem volta para a piscina. Mais uma?','Faltou pouco! Respira, concentra e vai de novo.'][Math.floor(Math.random()*3)];
   ordem.forEach(n=>topMarca(n));const tfm=$('#topFim');if(tfm){tfm.open=false}
   const P=$('#podio');P.innerHTML='';
   ordem.forEach(n=>{
     let nota='';
-    if(n.dsq)nota=n.dsqPor==='15m'?'desclassificado · submerso além da marca':'desclassificado · saída falsa';
+    if(n.dsq)nota=n.saiu?dsqDe(n)[0]:'desclassificado · '+dsqDe(n)[0];
     else if(n.previsto)nota='tempo estimado';
     else if(n.humano&&!DEMO){
       const ch=chPB(QUEM[n.i].k),ant=parseFloat(guarda.le(ch));

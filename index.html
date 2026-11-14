@@ -693,22 +693,17 @@ const POOL=(()=>{try{if(location.hash.indexOf('p50')>=0)return 50;const o=JSON.p
 let NPERNAS=100/POOL,DISTT=100;const SX=x=>POOL/2+(x-12.5)*POOL/25;   // SX estica para a piscina de 50 uma posição pensada para a de 25
 const LARG=16, RAIAS=[-7,-5,-3,-1,1,3,5,7], TAU=Math.PI*2, HT=3, HL=4;
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)), lerp=(a,b,t)=>a+(b-a)*t;
-/* O TEMPO DE CADA NADO (o segredo do jogo). Cada nado tem o seu compasso, parecido com o de verdade:
-   borboleta e peito são de TEMPO: um toque por braçada, na hora em que o anel fecha (é o instante da puxada do boneco).
-     per = duração da braçada (o peito é mais lento e desliza mais); jp e jb = meia janela do Perfeito e do Bom, em segundos
-     (criança erra de 100 a 150 ms e quem espera o verde chega uns 0,3 s depois: o Bom é largo); vp e vb = velocidade média de quem só faz Perfeito ou só faz Bom;
-     dec = quanto do embalo se perde por segundo entre uma braçada e outra.
-   costas e livre são ALTERNADOS: um braço de cada vez. iv0 a iv1 = intervalo confortável entre os toques; ivI = o ideal, que o
-     botão mostra enchendo (o costas gira mais devagar que o livre; perto do nado de verdade: uns 0,5 a 0,6 s por braço);
-     cap = velocidade de cruzeiro.
-   cpu = proporção de velocidade do nado para os bichos (livre > borboleta > costas > peito, como na vida).
-   gp, gb (ganho de cada toque), cap e vm (velocidade de referência) dos nados de tempo saem da conta logo abaixo. */
+/* JOGABILIDADE (pedido dele, 14/11): quanto mais rápido apertar, mais rápido nada. Não tem tempo certo.
+   rap = borboleta e peito: os dois braços juntos, qualquer tecla (A e D juntas contam um toque só).
+   alt = costas e livre: um braço de cada vez, alternando as duas teclas.
+   imp = empurrão de cada toque; cap = velocidade máxima do nado (livre > borboleta > costas > peito, na proporção de verdade);
+   cpu = proporção de velocidade do nado para os bichos. */
 const ESTILOS=[
-  {n:'Borboleta',tipo:'tempo',per:.9,jp:.09,jb:.28,vp:2.3,vb:2,dec:.55,cpu:1},
-  {n:'Costas',tipo:'alt',iv0:.28,iv1:.8,ivI:.58,cap:2,cpu:.92},
-  {n:'Peito',tipo:'tempo',per:1.2,jp:.1,jb:.34,vp:1.98,vb:1.73,dec:.5,cpu:.86},
-  {n:'Livre',tipo:'alt',iv0:.24,iv1:.7,ivI:.5,cap:2.6,cpu:1.08}];
-ESTILOS.forEach(e=>{if(e.tipo==='tempo'){const k=e.dec*e.per;e.gp=e.vp*k;e.gb=e.vb*k;e.cap=e.gp/(1-Math.exp(-k))*1.05;e.vm=e.vp}else e.vm=e.cap});
+  {n:'Borboleta',tipo:'rap',imp:.35,cap:2.6,cpu:1},
+  {n:'Costas',tipo:'alt',imp:.34,cap:2.5,cpu:.92},
+  {n:'Peito',tipo:'rap',imp:.3,cap:2.24,cpu:.84},
+  {n:'Livre',tipo:'alt',imp:.38,cap:2.75,cpu:1.08}];
+ESTILOS.forEach(e=>{e.vm=e.cap});
 /* raias 1 a 8: os dois da casa no meio, como em final olímpica */
 const QUEM=[
   {nome:'Pinguim',cor:'#8FB3D9',emoji:'🐧',f:.87},
@@ -3267,7 +3262,7 @@ function parcial(n,tw){
    ondR (ritmo de 0 a 1), ondSolto (toques sem par), ondAv (já avisou), ondP (hora de cada tecla), ondAte, ondFim, dsqPor ===== */
 /* margem do aviso: o "Sobe!" aparece 4 m antes da marca (aos 11 m). No peito limPeito não é regra: é só a rede de segurança
    de quem não fez os três toques (aviso aos 7 m, sobe sozinho perto dos 9). A mais de 3 m/s isso dá mais de um segundo para reagir */
-const OND={jan:170,lim:15,limPeito:10,aviso:4,avisoPeito:3};
+const OND={jan:220,lim:15,limPeito:10,aviso:4,avisoPeito:3};
 const ehCrianca=n=>n.i===HL&&!SITE;                              // a raia do Luca na versão da família: primeira infração vira aviso
 S.ondFacil=true;                                                 // a ondulação é sempre de um toque só
 const ondDist=n=>n.dir>0?n.x:POOL-n.x;                         // metros desde a parede de onde saiu
@@ -3301,7 +3296,7 @@ function ondChute(n){
     if(itq<.15){n.ondR=Math.max(0,n.ondR-.1);                                                       // rajada (dedo martelando): não vale e gasta o ritmo
       if(n.ondAv||n.ondR<=0)return ondSobe(n,n.ondAv?'bom':'lento');
       if(t-(n.calmaT||-9)>.8){n.calmaT=t;ondPisca(n,0);fala(n,'Calma! No ritmo')}return}                // o aviso (som e vermelho) sai no máximo a cada 0,8 s
-    const bom=iv>=(pe3?.3:.2)&&iv<=(pe3?.95:.6),reg=n.ondIv>0?Math.abs(iv-n.ondIv)/n.ondIv:.3;      // janela larga: de 0,2 a 0,6 s entre os chutes (a bolinha bate a cada 0,34); na saída do peito, de 0,3 a 0,95 s (bolinha a cada 0,6: cada movimento desliza)
+    const bom=iv>=(pe3?.25:.15)&&iv<=(pe3?1:.75),reg=n.ondIv>0?Math.abs(iv-n.ondIv)/n.ondIv:.3;      // janela larga: de 0,2 a 0,6 s entre os chutes (a bolinha bate a cada 0,34); na saída do peito, de 0,3 a 0,95 s (bolinha a cada 0,6: cada movimento desliza)
     if(bom&&reg<.35){g=.9;n.ondR=Math.min(1,n.ondR+.17);n.ondBom++}             // no ritmo e constante
     else if(bom){g=.75;n.ondR=Math.max(0,n.ondR-.02)}                           // no ritmo, mas irregular: quase igual
     else{g=.4;ok=0;n.ondR=Math.max(0,n.ondR-.15)}                               // rápido ou lento demais: anda menos, mas anda
@@ -3321,10 +3316,16 @@ function ondChute(n){
 }
 /* tecla ou botão durante a ondulação: um toque só, no ritmo, vale um chute (pedido dele: um botão só é melhor).
    Depois do aviso de subir, o próximo toque já sobe e volta para a braçada */
+/* ondulação de volta como ele pediu: as duas teclas juntas (A + D; setas ← + →), toc toc toc. No celular e na barra de espaço,
+   um toque basta (ondToque). Quem fica alternando sozinho quer nadar: sobe e volta à braçada. Depois do "Sobe!", qualquer toque sobe */
 function ondAperta(n,lado){
   if(n.ondAv)return ondSobe(n,'bom');
-  return ondChute(n);
+  const ag=S.t*1000,o=n.ondP||(n.ondP=[-1e9,-1e9]),eu=lado?1:0;          // relógio do jogo, em ms
+  if(ag-o[1-eu]<=OND.jan){o[0]=o[1]=-1e9;n.ondSolto=0;return ondChute(n)}
+  o[eu]=ag;
+  if(++n.ondSolto>=6){ondSobe(n,'bom');if(ES(n).tipo==='alt')aperta(n.i,lado)}
 }
+function ondToque(n){if(!n.ond||n.estado!=='nadando')return;n.toqT=S.t;if(n.ondAv)return ondSobe(n,'bom');ondChute(n)}
 function ondPasso(n,dt){
   const d=ondDist(n),lim=ondLim(n),of=S.oficial&&iE(n.perna)!==2;   // a regra de distância não existe no peito
   if(!n.humano){if(d>=n.ondAte)ondSobe(n);return}              // bicho: ondula sozinho de 8 a 12 m, sem falta
@@ -3392,50 +3393,20 @@ function aperta(i,lado){
   if(n.ond)return ondAperta(n,lado);                            // submerso: cada toque é um chute
   if(n.vira)return viraToque(n);                                // perto da parede: o toque é a virada (ou o toque final)
   const e=ES(n),z=RAIAS[n.i];let ganho=0,tb=0,txt='';
-  if(e.tipo==='tempo'){
-    /* borboleta e peito: um toque por braçada, quando o anel fecha. Regra de ouro: quem toca mais ou menos no tempo anda bem (Bom),
-       quem acerta em cheio anda um pouco melhor (Perfeito), e ninguém perde tudo por errar (cedo ou tarde ainda anda um pouco).
-       O compasso acompanha o jogador: cada toque que vale puxa o anel metade do caminho para perto do dedo dele, então quem toca
-       sempre um pouco antes ou um pouco depois (até a janela do Bom), no mesmo ritmo, acaba no Perfeito. Fora da janela (Cedo!/Tarde!)
-       a braçada anda 80% do Bom e a seguinte vale cheia. Duas teclas apertadas juntas valem um toque só. Só martelar é que não rende. */
-    const dq=S.t-(n.tqT===undefined?-9:n.tqT),perf=()=>{ganho=e.gp;tb=.12;n.combo++;txt=n.combo>1?'Perfeito x'+n.combo:'Perfeito!';SOM.perfeito();sinal(n,'v')};
-    if(dq<.12&&!n.tqPar){n.tqPar=1;n.tqT=S.t;return}              // duas teclas apertadas juntas (o gesto natural da borboleta e do peito): o segundo dedo é o mesmo toque
-    n.tqPar=0;n.tqT=S.t;
-    if(n.ultB<0){                                               // primeira braçada depois de subir, de virar ou de trocar de nado: nunca sai punida, e é ela que marca o compasso
-      const cedo=S.t<n.t0-e.jp;n.t0=S.t;n.ultB=0;n.sujo=0;        // anel verde aceso (fica aceso esperando) = Perfeito; antes de o anel fechar = Bom
-      if(!cedo)perf();else{ganho=e.gb;tb=.05;n.combo=0;txt='Bom';SOM.bom();sinal(n,'a')}}
-    else{
-      const k=Math.round((S.t-n.t0)/e.per),err=S.t-(n.t0+k*e.per),d=Math.abs(err);
-      if(dq<e.per*.33||k<=n.ultB){tb=-.04;n.combo=0;n.sujo=1;                                                    // dedo martelando: não vale, mas também não freia
-        if(S.t-(n.calmaT||-9)>.8){n.calmaT=S.t;txt='Calma! Um toque só';SOM.erro();sinal(n,'r')}}                 // o aviso (som e vermelho) sai no máximo a cada 0,8 s
-      else if(d<=e.jb){n.ultB=k;n.t0+=err*.5;
-        if(d<=e.jp&&!n.sujo)perf();
-        else{ganho=e.gb*(n.sujo?.6:1);tb=n.sujo?.02:.05;n.combo=0;txt='Bom';SOM.bom();sinal(n,'a')}
-        n.sujo=0}
-      else{ganho=e.gb*.8;n.combo=0;n.sujo=0;txt=err<0?'Cedo! Espera o verde':'Tarde! Toque no verde';SOM.erro();sinal(n,'r')}}   // fora da janela: anda 80% do Bom (mais que martelar), não queima a braçada e não suja a seguinte
-    if(ganho>.5)espirra(n.x+n.dir*.7,.05,z,7,1.8);if(ganho>=e.gp)estrelas(n);
-  }else{
-    /* livre e costas: um braço de cada vez, na cadência do nado (o botão da vez enche e acende na hora boa). Dentro da faixa
-       confortável (iv0 a iv1) rende a velocidade cheia; correr com o dedo rende um pouco MENOS (braçada curta), devagar demais
-       o nadador desliza. Toque nunca tira velocidade. Cada toque anda meia braçada do boneco (n.phAlvo) e b3 acende o braço da vez.
-       A primeira braçada (saiu do fundo, virou, trocou de nado ou voltou de uma parada) vale cheia. */
-    if(lado!==n.lado){
-      const prim=n.lado<0,iv=S.t-(n.altT===undefined?-9:n.altT);n.altT=S.t;n.lado=lado;
-      let q=1,cor='v';
-      if(prim||iv>2.5){}
-      else if(iv<e.iv0){q=iv<e.iv0*.62?.75:.88;cor='a';if(S.t-(n.devT||-9)>1.6){n.devT=S.t;txt='Mais devagar! Braçada longa'}}   // martelando: 75%; só um pouco apressado: 88%
-      else if(iv>e.iv1){q=clamp(e.iv1/iv,.6,1);cor='a'}
-      n.altQ=prim?1:lerp(n.altQ===undefined?1:n.altQ,q,.6);       // qualidade da cadência, suavizada: um toque fora não derruba
-      ganho=-1;tb=cor==='v'&&!prim?.03:cor==='a'&&iv<e.iv0?0:.01;sinal(n,cor);espirra(n.x+n.dir*.6,.05,z+(lado?-.35:.35),2,1.4);
-      const b=Math.max(n.phAlvo===undefined?n.ph:n.phAlvo,n.ph);n.phAlvo=Math.min(Math.floor(b*2+1e-6)/2+.5,n.ph+1);
+  /* quanto mais rápido apertar, mais rápido nada (pedido dele). Cada toque empurra; entre os toques o embalo cai devagar */
+  if(e.tipo==='rap'){                                           // borboleta e peito: qualquer tecla; A e D juntas contam um toque só
+    if(S.t-(n.tqT===undefined?-9:n.tqT)<.07)return;
+    n.tqT=S.t;ganho=e.imp;tb=.018;sinal(n,'v');espirra(n.x+n.dir*.7,.05,z,4,1.6);
+    if(S.t-(n.somT||0)>.16){n.somT=S.t;SOM.agua()}
+  }else{                                                        // livre e costas: alterna as duas teclas
+    if(lado!==n.lado){ganho=e.imp;tb=.018;n.lado=lado;sinal(n,'v');espirra(n.x+n.dir*.6,.05,z+(lado?-.35:.35),2,1.4);
       if(S.t-(n.somT||0)>.16){n.somT=S.t;SOM.agua()}}
-    else if(S.t-(n.calmaT||-9)>.8){n.calmaT=S.t;txt='Alterne! Outro braço';sinal(n,'r')}
+    else{ganho=.06;if(S.t-(n.calmaT||-9)>.8){n.calmaT=S.t;txt='Alterne! Outro braço';sinal(n,'r')}}
   }
   const vant=(n.i===HL&&S.vant&&!SITE),emTurbo=n.turboT>0;
   const teto=e.cap*(emTurbo?1.25:1)*(vant?1.1:1);
-  if(ganho<0){const alvo=teto*n.altQ;if(n.v<alvo)n.v+=(alvo-n.v)*(emTurbo?.7:.55)}  // puxa para a velocidade do ritmo; nunca freia
-  else if(ganho>0)n.v=Math.min(Math.max(n.v,0)+ganho*(emTurbo?1.35:1)*(vant?1.25:1),Math.max(teto,n.v));
-  n.v=Math.max(n.v,e.vm*.6);                                    // qualquer toque, mesmo errado, garante 60% da velocidade do nado: ninguém fica parado nem perde tudo
+  if(ganho>0)n.v=Math.min(Math.max(n.v,0)+ganho*(emTurbo?1.35:1)*(vant?1.25:1),Math.max(teto,n.v));
+  if(ganho>.1)n.v=Math.max(n.v,e.vm*.35);                       // tocou, andou: ninguém fica parado
   n.turbo=clamp(n.turbo+tb,0,1);
   if(n.turbo>=1&&!emTurbo){n.turbo=0;n.turboT=2.2;txt='TURBO!';SOM.turbo();agita(.35);grita(n.i);espirra(n.x,.1,z,16,2.4);estouro(n.x,.2,z,18)}
   if(txt)fala(n,txt);
@@ -3495,25 +3466,19 @@ function nada(n,dt){
   if(n.ond)ondPasso(n,dt);
   if(n.humano){
     if(AUTO&&n.salto<=0&&!n.ond&&!n.vira){
-      if(e.tipo==='tempo'){const k=Math.floor((S.t-n.t0)/e.per);if(k>n.ultB&&k>=0)aperta(n.i,0)}
-      else{n.bot-=dt;if(n.bot<=0){n.bot=e.ivI*(n.i===HL?1.1:1);aperta(n.i,n.lado===0?1:0)}}       // conferência: alterna na cadência do nado
+      n.bot-=dt;if(n.bot<=0){n.bot=n.i===HL?.2:.17;aperta(n.i,n.lado===0?1:0)}                  // conferência: aperta rápido, alternando
     }
     /* perda de embalo entre os toques: submerso .9/s; borboleta e peito, a do nado (o peito desliza mais); livre e costas quase nada
        enquanto a cadência segue, e .7/s quando o jogador para. Na zona da virada desliza até a parede. Piso de 0,5 m/s: ninguém fica parado;
        depois de 5 s sem nenhum toque (largou o teclado) o piso sobe para 1,2 m/s, para a prova de todo mundo acabar */
-    const noRitmo=e.tipo==='alt'&&!n.ond&&S.t-(n.altT||-9)<e.iv1+.08;
-    if(!n.vira)n.v*=Math.exp(-(n.ond?.9:e.tipo==='tempo'?e.dec:noRitmo?.12:.7)*dt);
+    if(!n.vira)n.v*=Math.exp(-.9*dt);
     if(n.salto<=0&&!VIRAFOTO)n.v=Math.max(n.v,!n.ond&&S.t-(n.toqT||S.tGo)>5?1.2:.5);
   }else{
     const el=clamp((S.dH-distancia(n))/14,-1,1);          // elástico leve: ninguém some na frente nem fica para trás
     const alvo=n.base*e.cpu*(1+.06*Math.sin(S.t*.7+n.ruido))*(1+.07*el)*(n.ond?1.05:1);
     n.v=lerp(n.v,alvo,1-Math.exp(-dt*2.2));
   }
-  if(e.tipo==='tempo')n.ph=(S.t-n.t0)/e.per+.3;
-  else if(n.humano&&n.phAlvo!==undefined&&!n.ond&&!n.vira){                 // livre e costas do jogador: cada toque anda meia braçada
-    if(n.phAlvo<n.ph-.01)n.phAlvo=n.ph;n.ph+=(n.phAlvo-n.ph)*(1-Math.exp(-dt*13))}
-  else if(!n.humano&&!n.ond)n.ph+=dt*clamp(n.v/e.cap,.6,1.3)*.5/e.ivI;        // bicho no livre e no costas: mesma cadência do guia do jogador (um ciclo = dois braços)
-  else n.ph+=dt*(.45+n.v*.6);
+  n.ph+=dt*(.45+n.v*.6);                                        // a braçada do boneco acompanha a velocidade
   n.x+=n.dir*n.v*equilibrio(n)*dt;
   if(n.humano&&viva&&n.salto<=0&&!n.ond)viraZona(n);
   if(viva&&n.perna===NPERNAS-1&&!n.sprint&&distancia(n)>=DISTT-14){
@@ -3875,9 +3840,9 @@ function avisaRM(txt,cls){
 /* o texto de como jogar da natação acompanha as regras de agora (o parágrafo mora em corpo.html; ao juntar as frentes, levar este texto para lá) */
 (function(){const p=$('#comoNado');if(p)p.innerHTML='<b>Largada como na competição:</b> apitos curtos, apito longo para subir no bloco, “take your marks” e o sinal. '
   +'Só aperte quando o botão ficar verde: quem sai antes leva um aviso (com a regra oficial ligada, é desclassificado). No nado costas a saída é de dentro da água. '
-  +'<b>Cada nado tem o seu tempo.</b> Borboleta e peito: um toque por braçada, quando o anel fechar e ficar verde (o peito é mais lento e desliza). '
-  +'Costas e livre: um braço de cada vez, sem correr, quando o botão encher. Debaixo d’água, um toque por chute e suba no “Sobe!”; '
-  +'na saída do peito são três toques: puxa, golfinho, pernada. Acertou em sequência, enche o turbo. A linha dourada na água é o recorde mundial.'})();
+  +'<b>Quanto mais rápido apertar, mais rápido nada.</b> Borboleta e peito: aperte rápido (qualquer tecla). Costas e livre: alterne as duas teclas, rápido. '
+  +'Debaixo d’água: as duas teclas juntas, toc toc toc (no celular, um toque), e suba no “Sobe!”; '
+  +'na saída do peito são três vezes: puxa, golfinho, pernada. Apertando bastante, enche o turbo. A linha dourada na água é o recorde mundial.'})();
 const SINC={v:[.37,.83,.55],a:[1,.78,.24],r:[1,.35,.31]};
 function sinal(n,q){                                      // q: 'v' acertou, 'a' quase, 'r' errou
   if(!n||n.remoto)return;const ag=performance.now();
@@ -3957,11 +3922,11 @@ function trocaControle(n){
   else if(tipo==='vira')c.innerHTML='<button class="beat vira" data-l="0"><span class="alvo">'+(n.perna===NPERNAS-1?'TOCA!':'VIRA!')+'</span><span class="ring"></span></button>';
   else if(tipo==='ond'){                                          // submerso: um botão só, um toque por chute. No peito são três toques: braçada, golfinhada e pernada
     const k=ondTeclas(n),lim=ondLim(n),pe=iE(n.perna)===2,solo=S.nad.filter(o=>o.humano&&!o.remoto).length===1;
-    const meio='<div class="ondm"><b>'+(pe?'Saída do peito: 3 toques no ritmo':TOQUE?'Toque o botão no ritmo':'Toque '+k[0]+' ou '+k[1]+' no ritmo')+'</b><em class="ritmo"><i></i>'+(pe?'puxa · golfinho · pernada':'várias vezes · toc toc toc · não segure')+'</em><div class="ondb"><i></i><u style="left:'+(ondAvisa(n)/lim*100).toFixed(0)+'%"></u></div>'
-      +'<small>'+(pe?'braçada longa, uma golfinhada e uma pernada':(solo&&!TOQUE?'ou espaço · ':'')+'sobe antes dos '+lim+' m')+'</small></div>';
+    const meio='<div class="ondm"><b>'+(TOQUE?(pe?'Saída do peito: toque 3 vezes':'Toque o botão: toc toc toc'):(pe?'Saída do peito: '+k[0]+' + '+k[1]+' juntas, 3 vezes':'Aperte '+k[0]+' + '+k[1]+' juntas'))+'</b><em class="ritmo"><i></i>'+(pe?'puxa · golfinho · pernada':'as duas juntas · toc toc toc · não segure')+'</em><div class="ondb"><i></i><u style="left:'+(ondAvisa(n)/lim*100).toFixed(0)+'%"></u></div>'
+      +'<small>'+(pe?'braçada longa, uma golfinhada e uma pernada':(solo&&!TOQUE?'ou só o espaço · ':'')+'sobe antes dos '+lim+' m')+'</small></div>';
     c.innerHTML='<button class="bt ond vez'+(pe?' pe3':'')+'" data-l="0">'+(pe?PEITO3[0]:'CHUTE')+'</button>'+meio;
     n.ondM=c.querySelector('.ondm');n.ondBar=c.querySelector('.ondb i');n.ondTxt=c.querySelector('.ondm b')}
-  else if(tipo==='tempo')c.innerHTML='<button class="beat" data-l="0" style="overflow:hidden"><span class="alvo">JÁ</span><span class="ring"></span></button>';
+  else if(tipo==='rap')c.innerHTML='<button class="bt vez" data-l="0">RÁPIDO!</button>';                       // um botão grande: qualquer tecla vale
   else if(tipo==='jet')c.innerHTML='<button class="bt jet" data-l="0" aria-label="Faixa da esquerda">◀</button><button class="bt jet" data-l="1" aria-label="Faixa da direita">▶</button>';
   else if(tipo==='alt')c.innerHTML='<button class="bt enche" data-l="0">ESQ</button><button class="bt enche" data-l="1">DIR</button>';
   else c.innerHTML='<div class="beat"><span class="alvo">'+(n.dsq?'DSQ':n.pos+'º')+'</span></div>';
@@ -3969,7 +3934,7 @@ function trocaControle(n){
   if(tipo==='pula')semaforo();else if(tipo==='vira')viraTela(n,viraResta(n));
   c.querySelectorAll('button').forEach(b=>{
     b.style.touchAction='none';
-    b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('dn');aperta(n.i,+b.dataset.l)});
+    b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('dn');if(n.tipoCtl==='ond')ondToque(n);else aperta(n.i,+b.dataset.l)});   // no celular a ondulação é um toque só
     ['pointerup','pointercancel','pointerleave'].forEach(t=>b.addEventListener(t,()=>b.classList.remove('dn')));
     b.addEventListener('contextmenu',e=>e.preventDefault());
   });
@@ -3982,7 +3947,7 @@ addEventListener('keydown',e=>{
   let m=TECLA[e.code];if(m&&SITE&&!SALA.on&&!EU.dono&&m[0]===HT)m=[1,m[1]];       // no site, convidado não usa a raia do Thiago: A e D vão para a raia 2
   const hs=S.nad.filter(n=>n.humano&&!n.remoto);
   if(hs.length===1&&e.code==='Space'&&hs[0].ond&&hs[0].estado==='nadando'&&S.prova!=='jet'){                 // sozinho no aparelho: a barra de espaço vale como chute
-    e.preventDefault();if(!e.repeat)ondAperta(hs[0],0);if(hs[0].bts)hs[0].bts.forEach(b=>{b.classList.add('dn');setTimeout(()=>b.classList.remove('dn'),90)});return}
+    e.preventDefault();if(!e.repeat)ondToque(hs[0]);if(hs[0].bts)hs[0].bts.forEach(b=>{b.classList.add('dn');setTimeout(()=>b.classList.remove('dn'),90)});return}
   if(hs.length===1){const n=hs[0];if(m)m=[n.i,m[1]];else if(e.code==='Space')m=[n.i,n.lado===0?1:0]}
   if(!m)return;e.preventDefault();aperta(m[0],m[1]);
   if(!S.nad.some(o=>o.i===m[0]&&o.humano))return;
@@ -4013,13 +3978,12 @@ function pinta(){
     n.lug.textContent=n.dsq&&n.estado==='fim'?'DSQ':n.estado==='fim'?n.pos+'º':d>3?(1+S.nad.filter(o=>distancia(o)>d).length)+'º':'';
     n.barra.style.width=(n.turboT>0?100:n.turbo*100)+'%';
     n.pad.classList.toggle('turbo',n.turboT>0);
-    if(n.tipoCtl==='tempo'&&n.ring){
+    if(false){
       const f=(S.t-n.t0)/ES(n).per,falta=f<0?Math.min(1,-f):1-(f-Math.floor(f));
       n.ring.style.transform='scale('+(1+1.6*falta).toFixed(3)+')';n.ring.style.opacity=(1-.6*falta).toFixed(2);
       const e=ES(n),er=f-Math.round(f),ag=n.ultB<0?f*e.per>=-e.jp:Math.abs(er)*e.per<=e.jp+.03;       // verde = o toque agora vale Perfeito (na primeira braçada fica aceso esperando, igual à regra em a5)
       if(ag!==n.agV){n.agV=ag;n.ring.parentNode.classList.toggle('agora',ag)}
-    }else if(n.tipoCtl==='alt'){const e=ES(n),iv=S.t-(n.altT===undefined?-9:n.altT),p=clamp(iv/(e.ivI*.9),0,1).toFixed(2);
-      n.bts.forEach(b=>{const prox=+b.dataset.l!==n.lado;b.classList.toggle('vez',prox&&(n.lado<0||iv>=e.iv0));b.style.setProperty('--p',prox?p:0)})}
+    }else if(n.tipoCtl==='alt'){n.bts.forEach(b=>{const prox=+b.dataset.l!==n.lado;b.classList.toggle('vez',prox);b.style.setProperty('--p',prox?1:0)})}   // acende o próximo braço
   });
 }
 

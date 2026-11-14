@@ -722,7 +722,7 @@ function torcida(nivel){
 function agita(f){
   const a=audio();if(!a||!TG||!(S.torc>0))return;const t=a.currentTime,b=.085*S.torc;
   TG.gain.cancelScheduledValues(t);TG.gain.setTargetAtTime(b*(1+f),t,.12);TG.gain.setTargetAtTime(b,t+1.1,.9);
-  if(f>.6)apito(.2+Math.random()*.5);if(f>.9)corneta(.1);
+  if(f>.9)corneta(.1);                                     // sem o apitinho de brinquedo: o apito agora é só o do árbitro
 }
 function palmas(dur,vol){
   const n=Math.floor(dur*26);
@@ -778,7 +778,7 @@ const SOM={
   toque(){bip(1245,.1,.1,'square',0,.5)},
   fim(){[523,659,784,1047].forEach((f,k)=>bip(f,.35,.13,'triangle',k*.13,.4));palmas(2.4,.05)},
   fanfarra(){[[523,0,.17],[523,.19,.17],[523,.38,.17],[659,.57,.3],[784,.9,.3],[1047,1.24,1.1]].forEach(([f,q,d])=>{metal(f,d,.06,q);metal(f/2,d,.045,q);metal(f*1.5,d,.02,q)});palmas(3.4,.06);corneta(1.3)},
-  recorde(){[523,659,784,1047,1319,1568].forEach((f,k)=>bip(f,.42,.12,'triangle',k*.1,.5));palmas(3.6,.07);[.2,.9,1.7].forEach(q=>apito(q));corneta(.5);corneta(1.4)}
+  recorde(){[523,659,784,1047,1319,1568].forEach((f,k)=>bip(f,.42,.12,'triangle',k*.1,.5));palmas(3.6,.07);corneta(.5);corneta(1.4)}
 };
 
 /* ===== a2b: a vovó na arquibancada (voz do aparelho ou gravação de verdade) ===== */
@@ -2246,14 +2246,14 @@ for(let k=0;k<12;k++){const m=new THREE.Mesh(new THREE.PlaneGeometry(1,1),basico
   m.rotation.x=-Math.PI/2;m.visible=false;cena.add(m);anelS.push({m,v:0,n:null})}
 
 function anelLuz(n,c){
-  if(S.prova==='jet'&&!n.m)return;const a=anelS[nAS++%anelS.length];a.v=1;a.n=n;a.m.visible=true;
+  if(S.prova==='jet'&&!n.m)return;const a=anelS.find(x=>x.n===n&&x.v>0)||anelS[nAS++%anelS.length];a.v=1;a.n=n;a.m.visible=true;   // um anel por nadador: reaproveita em vez de empilhar
   a.m.material.color.setRGB(c[0],c[1],c[2]);if(ALTA)a.m.material.color.convertSRGBToLinear();
 }
 function moveAneisS(dt){
   if(location.hash.indexOf('sinalteste')>=0)dt=0;                 // conferência: anéis parados para a foto
   anelS.forEach(a=>{if(a.v<=0)return;a.v-=dt*2.6;if(a.v<=0){a.m.visible=false;return}
     const n=a.n,jt=S.prova==='jet',x=jt?n.x:n.x+n.dir*.1,z=jt?n.z:RAIAS[n.i],k=1-a.v;
-    a.m.position.set(x,jt?.08:.035,z);a.m.scale.set((jt?2.8:2.2)+k*1.6,(jt?2.2:1.5)+k*1.1,1);a.m.material.opacity=.95*Math.min(1,a.v*1.6)})}
+    a.m.position.set(x,jt?.08:.035,z);a.m.scale.set((jt?2:1.25)+k*.7,(jt?1.6:.85)+k*.45,1);a.m.material.opacity=.6*Math.min(1,a.v*1.6)})}
 const _v2=new THREE.Vector2();let luzPara=false;          // luzPara: congela as faíscas (só para a foto de conferência)
 function moveLuzes(dt){
   if(luzPara){luzes.material.uniforms.uPx.value=R.getDrawingBufferSize(_v2).y/(2*Math.tan(cam.fov*Math.PI/360));return}
@@ -3171,7 +3171,7 @@ addEventListener('keydown',e=>{
   let m=TECLA[e.code];if(m&&SITE&&!SALA.on&&!EU.dono&&m[0]===HT)m=[1,m[1]];       // no site, convidado não usa a raia do Thiago: A e D vão para a raia 2
   const hs=S.nad.filter(n=>n.humano&&!n.remoto);
   if(hs.length===1&&e.code==='Space'&&hs[0].ond&&hs[0].estado==='nadando'&&S.prova!=='jet'){                 // sozinho no aparelho: a barra de espaço vale como chute
-    e.preventDefault();ondChute(hs[0]);if(hs[0].bts)hs[0].bts.forEach(b=>{b.classList.add('dn');setTimeout(()=>b.classList.remove('dn'),90)});return}
+    e.preventDefault();if(!e.repeat)ondAperta(hs[0],0);if(hs[0].bts)hs[0].bts.forEach(b=>{b.classList.add('dn');setTimeout(()=>b.classList.remove('dn'),90)});return}
   if(hs.length===1){const n=hs[0];if(m)m=[n.i,m[1]];else if(e.code==='Space')m=[n.i,n.lado===0?1:0]}
   if(!m)return;e.preventDefault();aperta(m[0],m[1]);
   if(!S.nad.some(o=>o.i===m[0]&&o.humano))return;

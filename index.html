@@ -1490,7 +1490,7 @@ const aguaMat=new THREE.ShaderMaterial(ALTA?{
       cor=mix(vec3(.012,.17,.29)+vec3(.02,.10,.14)*sin(p.x*3.+uT*2.)*sin(p.y*4.-uT*1.6),vec3(.32,.82,1.)*1.7,jan)+vec3(.9)*pow(max(0.,1.-length(n.xz)*2.4),10.)*jan;
     }else{
       vec2 suv=gl_FragCoord.xy/uRes;float k=clamp(7./dist,.12,1.);
-      vec3 refr=texture2D(tRefr,suv+n.xz*vec2(.014,.01)*k).rgb;
+      vec3 refr=texture2D(tRefr,suv+n.xz*vec2(.014,.01)*k*(1.-.75*clamp(esp*3.,0.,1.))).rgb;   // perto do nadador a água quase não desloca o corpo submerso (não aparece em dobro)
       vec3 refl=texture2D(tRefl,vec2(1.-suv.x,suv.y)+n.xz*vec2(.07,.11)*k).rgb;
       float fr=clamp(.02+.98*pow(1.-max(dot(n,v),0.),5.),0.,1.);
       cor=mix(refr*vec3(.62,.90,1.)+vec3(0.,.012,.022),refl,fr);
@@ -2392,7 +2392,7 @@ function criaNadador(i,pai,base){
   pc(new THREE.CylinderGeometry(.034,.034,.03,12),MAT_FITA,-.258,ym,0,1,1,1,med);                                 // laço que prende o disco
   const disco=pc(new THREE.CylinderGeometry(.066,.066,.016,32),mMed,-.31,ym-.006,0,1,1,1,med);disco.rotation.y=Math.PI/2;
   corpo.scale.setScalar(esc);
-  if(ALTA)corpo.traverse(o=>{if(o.isMesh)o.castShadow=true});
+  corpo.traverse(o=>{if(o.isMesh)o.castShadow=false});         // sem sombra no fundo da piscina: ela parecia um segundo nadador (pedido dele)
   if(og)og.traverse(o=>{o.castShadow=false});                   // os óculos não precisam de sombra (menos desenho por quadro)
   const brilho=new THREE.Sprite(new THREE.SpriteMaterial({map:texLuz,color:q.cor,blending:THREE.AdditiveBlending,depthWrite:false,transparent:true,opacity:0}));
   brilho.scale.set(4.2,2.6,1);brilho.position.set(-.5,.25,0);g.add(brilho);

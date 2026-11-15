@@ -1383,6 +1383,8 @@ if(ALTA){
   if(!compo){R.outputEncoding=THREE.sRGBEncoding;R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=.95}
 }
 
+function efeitosNad(){const l=[];[typeof gotas!=='undefined'?gotas:null,typeof bolhas!=='undefined'?bolhas:null].forEach(o=>{if(o)l.push(o)});
+  if(typeof aneis!=='undefined')aneis.forEach(a=>l.push(a.o));if(typeof nevoas!=='undefined')nevoas.forEach(a=>l.push(a.o));if(typeof anelS!=='undefined')anelS.forEach(a=>l.push(a.m));return l}
 const TORCM=[];                                          // malhas da torcida: {im,refl,total}; no reflexo só corpo e cabeça, na refração nada
 const soTela=[],SEMREFLEXO=[];                           // SEMREFLEXO: os nadadores, que não aparecem espelhados na água (pedido dele: parecia ter nadador a mais)                                         // o que só aparece na tela final (crachás), nunca no reflexo
 let larg=0,alt=0;
@@ -1419,13 +1421,15 @@ function desenha(){
   R.shadowMap.autoUpdate=true;
   if(arena.visible&&!sub&&(econ<2||quadroN%2===0)){
     agua.visible=false;soTela.forEach(o=>{o.userData.v=o.visible;o.visible=false});
-    TORCM.forEach(o=>{o.im.visible=o.refl});SEMREFLEXO.forEach(o=>{o.userData.vr=o.visible;o.visible=false});
+    TORCM.forEach(o=>{o.im.visible=o.refl});SEMREFLEXO.concat(efeitosNad()).forEach(o=>{o.userData.vr=o.visible;o.visible=false});   // nada do nadador (corpo, gotas, bolhas, anéis) entra no reflexo
     espelho();R.setRenderTarget(rtRefl);R.render(cena,camR);
-    SEMREFLEXO.forEach(o=>{o.visible=o.userData.vr});
+    SEMREFLEXO.concat(efeitosNad()).forEach(o=>{o.visible=o.userData.vr});
     R.shadowMap.autoUpdate=false;
     TORCM.forEach(o=>{o.im.visible=false});
     submersa();const f=cena.background;cena.background=corFundo;
+    SEMREFLEXO.forEach(o=>{o.userData.vr=o.visible;o.visible=false});      // o nadador não entra na refração: ele é desenhado direto, por cima da água
     R.setRenderTarget(rtRefr);R.render(cena,camF);cena.background=f;
+    SEMREFLEXO.forEach(o=>{o.visible=o.userData.vr});
     R.setRenderTarget(null);agua.visible=true;soTela.forEach(o=>{o.visible=o.userData.v});TORCM.forEach(o=>{o.im.visible=true});
   }
   if(compo){passeFim.uniforms.uT.value=(quadroN++%240)*.37;compo.render()}else R.render(cena,cam);
@@ -1538,6 +1542,7 @@ const aguaMat=new THREE.ShaderMaterial(ALTA?{
     cor=mix(cor,vec3(.86,.95,.99),clamp(esp*ru,0.,.8));
     gl_FragColor=vec4(cor,1.);}`
 });
+if(ALTA){aguaMat.polygonOffset=true;aguaMat.polygonOffsetFactor=40;aguaMat.polygonOffsetUnits=4000}   // a água fica um pouco 'para trás' na profundidade: o nadador submerso aparece inteiro e nítido, sem cópia refratada ao lado dele (pedido dele: tirar o reflexo)
 const agua=plano(POOL,LARG,aguaMat,POOL/2,0,0);agua.rotation.x=-Math.PI/2;
 
 /* ---------- deque de azulejo molhado, borda e canaleta ---------- */

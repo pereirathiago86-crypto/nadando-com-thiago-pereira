@@ -447,7 +447,7 @@ html.site .vagas{grid-template-columns:repeat(2,1fr)}
         <div class="opt" id="optPiscina"><span>Piscina</span>
           <div class="seg" id="segPiscina"><button data-v="25">Piscina 25 m</button><button data-v="50">Piscina 50 m</button></div></div>
         <div class="opt" id="optNado"><span id="nadoTit">Nado · 100 m</span>
-          <div class="seg" id="segNado"><button data-v="medley">Medley</button><button data-v="livre">Livre</button><button data-v="costas">Costas</button><button data-v="peito">Peito</button><button data-v="borbo">Borboleta</button></div></div>
+          <div class="seg" id="segNado"><button data-v="medley">Medley</button><button data-v="livre">Livre (crawl)</button><button data-v="costas">Costas</button><button data-v="peito">Peito</button><button data-v="borbo">Borboleta</button></div></div>
         <div class="opt"><span>Quem joga</span>
           <div class="seg" id="segModo"><button data-v="dupla">Os dois</button><button data-v="p0">Só o Thiago</button><button data-v="p1">Só o Luca</button><button data-v="tres">3 jogadores</button><button data-v="quatro">4 jogadores</button></div></div>
         <div class="opt"><span>Rivais</span>
@@ -2867,7 +2867,7 @@ function filma(dt,T){
     const zc=(z0+z1)/2+(nh<2?1:0);                                // um jogador só: a câmera fica em cima da raia de boia, não dentro da raia dele
     camAlvo.set(xw+s*clamp(dd*.8+1.6,3.2,7),-.18,(z0+z1)/2);camPos.set(xw-s*.45,.92+.03*Math.sin(T*1.3),zc);vel=4;
     cron=S.t-S.tGo;cronTxt=dd<1.3?'VAI BATER!':'ÚLTIMOS '+Math.ceil(dd)+' M'}
-  else if(ALTA&&f==='prova'&&TVV.n&&S.t-TVV.t<VIRAD){       // virada: de lado e baixo, a cambalhota do primeiro jogador
+  else if(false){                                          // tomada da virada desligada (15/11, pedido dele: ficava colada na água olhando a parede, sem nadador)
     nome='virada';const n=TVV.n,z=RAIAS[n.i],xw=TVV.xw,s=xw?-1:1;quem=n.i;
     camAlvo.set(xw+s*.45,-.3,z);camPos.set(xw+s*2.5,.88,z+1);vel=8;              // em cima da raia de boia vizinha, que não tapa a vista
     info=n.parc.length?(n.parc.length*POOL)+' M · '+fmt(n.parc[n.parc.length-1]):'VIRADA'}
@@ -2922,7 +2922,7 @@ cam.position.copy(camPos);
 /* clarão do estrobo no sinal de partida */
 function estrobo(){const e=$('#stage');e.classList.add('strobo');setTimeout(()=>e.classList.remove('strobo'),170)}
 /* a apresentação pula com um toque na tela ou com Enter, espaço ou Esc */
-const pulaIntro=()=>{if(S.fase==='marcas'&&S.t<(S.ti||0))S.t=S.ti};
+const pulaIntro=()=>{if(S.fase==='marcas'&&S.t<(S.ti||0)){S.t=S.ti;narraNomes()}};   // pulou a apresentação: o narrador ainda fala os dois nomes antes da largada
 $('#stage').addEventListener('pointerdown',pulaIntro);
 addEventListener('keydown',e=>{if(e.code==='Enter'||e.code==='Space'||e.code==='Escape')pulaIntro()});
 
@@ -3209,7 +3209,7 @@ function novaProva(){
   acertaDist();
   const rev=S.fase==='fim',nh=Math.max(1,JOG.filter(ehHumano).length);
   const ti=ALTA&&S.prova!=='jet'&&S.fase==='menu'&&(!DEMO||location.hash.indexOf('intro')>=0)?VOO+nh*(nh>4?1.2:nh>2?2.3:2.75):0;   // apresentação só vindo do menu
-  monta();S.fase='marcas';S.t=0;S.ti=ti;S.apres=0;S.acena=-1;
+  monta();S.fase='marcas';S.t=0;S.ti=ti;S.apres=0;S.acena=-1;S.nomesDitos=0;
   /* protocolo oficial de saída (World Aquatics, artigo 4): apitos curtos, apito longo, segundo apito longo no costas, "take your marks", sinal */
   const cst=S.prova!=='jet'&&iE(0)===1;
   S.pr=S.prova==='jet'?null:{ap:ti+.35,lg:ti+1.7,lg2:cst?ti+3.9:0,tym:ti+(cst?5.5:3.6)};
@@ -3348,6 +3348,13 @@ const DSQTXT={saida:['saída falsa','Saiu antes do sinal. Na próxima, espere o 
   '15m':['submerso além dos 15 m','Passou dos 15 m debaixo d’água. Na próxima, toque quando aparecer “Sobe!”.'],
   sala:['saiu da prova','O aparelho perdeu a conexão no meio da prova. É só entrar de novo na sala.']};
 const dsqDe=n=>DSQTXT[n.saiu?'sala':n.dsqPor==='15m'?'15m':'saida'];
+/* quem pulou a apresentação no meio ainda ouve os dois nomes antes da largada (uma vez por prova) */
+function narraNomes(){
+  if(S.nomesDitos||S.prova==='jet')return;S.nomesDitos=1;
+  const hs=[HT,HL].filter(i=>S.nad[i]&&S.nad[i].humano),nm=hs.map(i=>NOMEV[i]&&NOMEV[i]()).filter(Boolean);
+  if(!hs.length)return;
+  if(S.marcou===0&&S.pr&&!(typeof SALA==='object'&&SALA.on)){const dl=3.2;['ap','lg','lg2','tym'].forEach(k=>{if(S.pr[k])S.pr[k]+=dl});S.tGo+=dl}   // dá tempo para os nomes antes dos apitos
+  falaCala();narra(hs.map(i=>'Na raia '+RAIAEXT[i]+', '+QUEM[i].nome+'.').join(' '),3,nm.length?nm:null)}
 /* voz gravada com o nome: só quando o atleta da raia é mesmo o Thiago (raia 4) ou o Luca (raia 5) */
 const NOMEV={[HT]:()=>QUEM[HT]&&QUEM[HT].nome==='Thiago'?'nome4':null,[HL]:()=>QUEM[HL]&&QUEM[HL].nome==='Luca'?'nome5':null};
 function aperta(i,lado){
@@ -3358,7 +3365,7 @@ function aperta(i,lado){
       if(!j.avisoLarg){j.avisoLarg=S.t;fala(j,'Espera o sinal!');sinal(j,'a');SOM.bom();treme(20);return}}
     return apertaJet(i,lado)}
   const n=S.nad[i];if(!n||!n.humano||n.remoto)return;
-  if(S.fase==='marcas'&&S.t<(S.ti||0)){S.t=S.ti;return}        // qualquer toque pula a apresentação
+  if(S.fase==='marcas'&&S.t<(S.ti||0)){S.t=S.ti;narraNomes();return}        // qualquer toque pula a apresentação (os nomes ainda são falados)
   if(S.fase==='marcas'&&n.estado==='bloco'){                    // artigo 4.4: quem sai antes do sinal é desclassificado e a prova segue
     if(S.marcou<4||n.queimou)return;
     /* modo família: a primeira saída falsa de cada um vira só aviso e ele continua no bloco.
@@ -3537,9 +3544,9 @@ function passo(dt){
       const hs=JOG.filter(ehHumano),D=(ti-VOO)/hs.length,k=Math.floor((T-VOO)/D);
       if(!S.apres){S.apres=1;showAbertura();anuncia('FINAL · '+NADOS[S.nado].t.toUpperCase(),2.1);torcida(.9);narra('Boa noite, Brasil! Final dos '+NADOS[S.nado].fala+'!',3,'ab_'+S.nado+(DISTT===200?'200':''))}
       if(k>=0&&k<hs.length){const i=hs[k],e=2+k*2;
-        if(S.apres<e){S.apres=e;S.acena=i;agita(.6);narra(hs.length>4?QUEM[i].nome+'!':'Na raia '+RAIAEXT[i]+', '+QUEM[i].nome+'!',3,hs.length>4?null:(NOMEV[i]&&NOMEV[i]())||'raia'+(i+1))}
+        if(S.apres<e){S.apres=e;S.acena=i;agita(.6);if(k===hs.length-1)S.nomesDitos=1;narra(hs.length>4?QUEM[i].nome+'!':'Na raia '+RAIAEXT[i]+', '+QUEM[i].nome+'!',3,hs.length>4?null:(NOMEV[i]&&NOMEV[i]())||'raia'+(i+1))}
         if(S.apres===e&&hs.length<=4&&T>VOO+k*D+1.15){S.apres=e+1;grita(i)}}
-    }else if(!ti&&!S.apres&&T>.15){S.apres=99;                   // sem a apresentação (celular, revanche): o narrador abre e já fala os nomes dos dois, antes da largada
+    }else if(!ti&&!S.apres&&T>.15){S.apres=99;S.nomesDitos=1;                   // sem a apresentação (celular, revanche): o narrador abre e já fala os nomes dos dois, antes da largada
       const nm=[HT,HL].map(i=>S.nad[i]&&S.nad[i].humano&&NOMEV[i]&&NOMEV[i]()).filter(Boolean),txt=[HT,HL].filter(i=>S.nad[i]&&S.nad[i].humano).map(i=>'Na raia '+RAIAEXT[i]+', '+QUEM[i].nome+'.').join(' ');
       narra((S.rev?'Revanche valendo! ':'Final dos '+NADOS[S.nado].fala+'! ')+txt,3,[S.rev?'rev':'ab_'+S.nado+(DISTT===200?'200':'')].concat(nm))}
     if(S.marcou===0&&T>P.ap){SOM.apitos();S.marcou=1}                                    // 4.1.1: série de apitos curtos

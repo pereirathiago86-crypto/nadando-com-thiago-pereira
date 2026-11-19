@@ -3303,13 +3303,9 @@ function ondChute(n){
    Depois do aviso de subir, o próximo toque já sobe e volta para a braçada */
 /* ondulação de volta como ele pediu: as duas teclas juntas (A + D; setas ← + →), toc toc toc. No celular e na barra de espaço,
    um toque basta (ondToque). Quem fica alternando sozinho quer nadar: sobe e volta à braçada. Depois do "Sobe!", qualquer toque sobe */
-function ondAperta(n,lado){
-  if(n.ondAv)return ondSobe(n,'bom');
-  const ag=S.t*1000,o=n.ondP||(n.ondP=[-1e9,-1e9]),eu=lado?1:0;          // relógio do jogo, em ms
-  if(ag-o[1-eu]<=OND.jan){o[0]=o[1]=-1e9;n.ondSolto=0;return ondChute(n)}
-  o[eu]=ag;
-  if(++n.ondSolto>=6){ondSobe(n,'bom');if(ES(n).tipo==='alt')aperta(n.i,lado)}
-}
+/* 19/11 (pedido dele): A e D (ou as setas) toc toc toc. Cada toque é um chute, juntas ou uma de cada vez; as duas juntas valem um só.
+   Não sobe mais sozinho por apertar uma tecla de cada vez */
+function ondAperta(n,lado){ondToque(n)}
 function ondToque(n){if(!n.ond||n.estado!=='nadando')return;n.toqT=S.t;if(n.ondAv)return ondSobe(n,'bom');ondChute(n)}
 function ondPasso(n,dt){
   const d=ondDist(n),lim=ondLim(n),of=S.oficial&&iE(n.perna)!==2;   // a regra de distância não existe no peito
@@ -3843,7 +3839,7 @@ function avisaRM(txt,cls){
 (function(){const p=$('#comoNado');if(p)p.innerHTML='<b>Largada como na competição:</b> apitos curtos, apito longo para subir no bloco, “take your marks” e o sinal. '
   +'Só aperte quando o botão ficar verde: quem sai antes leva um aviso (com a regra oficial ligada, é desclassificado). No nado costas a saída é de dentro da água. '
   +'<b>Borboleta e peito:</b> um toque por braçada, quando o anel fechar no JÁ (o peito é mais lento). <b>Costas e livre:</b> alterne as duas teclas bem rápido, como quem corre. '
-  +'Debaixo d’água: as duas teclas juntas, toc toc toc (no celular, um toque), e suba no “Sobe!”; '
+  +'Debaixo d’água: as suas duas teclas, toc toc toc (no celular, o botão), e suba no “Sobe!”; '
   +'na saída do peito são três vezes: puxa, golfinho, pernada. Apertando bastante, enche o turbo. A linha dourada na água é o recorde mundial.'})();
 const SINC={v:[.37,.83,.55],a:[1,.78,.24],r:[1,.35,.31]};
 function sinal(n,q){                                      // q: 'v' acertou, 'a' quase, 'r' errou
@@ -3854,7 +3850,7 @@ function sinal(n,q){                                      // q: 'v' acertou, 'a'
 }
 const TOQUE=!!(window.matchMedia&&matchMedia('(pointer:coarse)').matches);
 /* as duas teclas de cada raia (no site o convidado da raia 2 usa A e D) */
-const ondTeclas=n=>S.nad.filter(o=>o.humano&&!o.remoto).length===1?['←','→']:({3:['A','D'],4:['←','→'],2:['J','L'],5:['F','H'],1:['A','D']}[n.i]||['←','→']);
+const ondTeclas=n=>S.nad.filter(o=>o.humano&&!o.remoto).length===1?['A','D (ou ← →)']:({3:['A','D'],4:['←','→'],2:['J','L'],5:['F','H'],1:['A','D']}[n.i]||['←','→']);
 /* pisca o miolo do pad: verde quando o chute valeu, vermelho quando saiu fora do ritmo */
 function ondPisca(n,ok){sinal(n,ok===2?'a':ok?'v':'r');const m=n.ondM;if(!m)return;m.classList.remove('ok','ruim','meio');void m.offsetWidth;m.classList.add(ok===2?'meio':ok?'ok':'ruim');if(ok===1)treme(8)}
 /* saída do peito: o botão diz qual é o próximo dos três movimentos */
@@ -3924,7 +3920,7 @@ function trocaControle(n){
   else if(tipo==='vira')c.innerHTML='<button class="beat vira" data-l="0"><span class="alvo">'+(n.perna===NPERNAS-1?'TOCA!':'VIRA!')+'</span><span class="ring"></span></button>';
   else if(tipo==='ond'){                                          // submerso: um botão só, um toque por chute. No peito são três toques: braçada, golfinhada e pernada
     const k=ondTeclas(n),lim=ondLim(n),pe=iE(n.perna)===2,solo=S.nad.filter(o=>o.humano&&!o.remoto).length===1;
-    const meio='<div class="ondm"><b>'+(TOQUE?(pe?'Saída do peito: toque 3 vezes':'Toque o botão: toc toc toc'):(pe?'Saída do peito: '+k[0]+' + '+k[1]+' juntas, 3 vezes':'Aperte '+k[0]+' + '+k[1]+' juntas'))+'</b><em class="ritmo"><i></i>'+(pe?'puxa · golfinho · pernada':'as duas juntas · toc toc toc · não segure')+'</em><div class="ondb"><i></i><u style="left:'+(ondAvisa(n)/lim*100).toFixed(0)+'%"></u></div>'
+    const meio='<div class="ondm"><b>'+(TOQUE?(pe?'Saída do peito: toque 3 vezes':'Toque o botão: toc toc toc'):(pe?'Saída do peito: '+k[0]+' e '+k[1]+', 3 toques':k[0]+' e '+k[1]+': toc toc toc'))+'</b><em class="ritmo"><i></i>'+(pe?'puxa · golfinho · pernada':'no ritmo da bolinha · não segure')+'</em><div class="ondb"><i></i><u style="left:'+(ondAvisa(n)/lim*100).toFixed(0)+'%"></u></div>'
       +'<small>'+(pe?'braçada longa, uma golfinhada e uma pernada':(solo&&!TOQUE?'ou só o espaço · ':'')+'sobe antes dos '+lim+' m')+'</small></div>';
     c.innerHTML='<button class="bt ond vez'+(pe?' pe3':'')+'" data-l="0">'+(pe?PEITO3[0]:'CHUTE')+'</button>'+meio;
     n.ondM=c.querySelector('.ondm');n.ondBar=c.querySelector('.ondb i');n.ondTxt=c.querySelector('.ondm b')}
